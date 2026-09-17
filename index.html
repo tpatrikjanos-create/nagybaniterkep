@@ -147,18 +147,71 @@ function initMap() {
     fullscreenControl: false,
   });
 
-  map.addListener('click', (e) => {
-    const lat = e.latLng.lat();
-    const lng = e.latLng.lng();
-    handleNewPosition(lat, lng);
-  });
-
   initFirebase();
 
   // ha nincs Firebase, próbáljunk helyi tárolásból betölteni
   if (!firebaseReady) {
     loadLocalVendors();
     renderMarkers();
+  }
+
+  startLocationTracking();
+}
+
+/* ====== KÉK PONT - SAJÁT POZÍCIÓ ====== */
+let myLocationMarker = null;
+let myAccuracyCircle = null;
+let watchId = null;
+
+function startLocationTracking() {
+  if (!navigator.geolocation) {
+    showStatus("A böngésződ nem támogatja a GPS-t");
+    return;
+  }
+  watchId = navigator.geolocation.watchPosition(
+    pos => updateMyLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
+    err => showStatus("GPS hiba: " + err.message, 4000),
+    { enableHighAccuracy: true, maximumAge: 5000 }
+  );
+}
+
+function updateMyLocation(lat, lng, accuracy) {
+  const pos = { lat, lng };
+
+  if (!myLocationMarker) {
+    myLocationMarker = new google.maps.Marker({
+      position: pos,
+      map: map,
+      title: "Itt állsz - kattints ide új stand felvételéhez",
+      zIndex: 999,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 8,
+        fillColor: '#1a73e8',
+        fillOpacity: 1,
+        strokeColor: 'white',
+        strokeWeight: 3,
+      }
+    });
+    myLocationMarker.addListener('click', () => {
+      handleNewPosition(myLocationMarker.getPosition().lat(), myLocationMarker.getPosition().lng());
+    });
+
+    myAccuracyCircle = new google.maps.Circle({
+      map: map,
+      center: pos,
+      radius: accuracy || 10,
+      fillColor: '#1a73e8',
+      fillOpacity: 0.15,
+      strokeColor: '#1a73e8',
+      strokeOpacity: 0.4,
+      strokeWeight: 1,
+      clickable: false,
+    });
+  } else {
+    myLocationMarker.setPosition(pos);
+    myAccuracyCircle.setCenter(pos);
+    myAccuracyCircle.setRadius(accuracy || 10);
   }
 }
 
@@ -243,25 +296,15 @@ function createVendor(name, lat, lng) {
   showStatus(`Új stand létrehozva: ${name}`);
 }
 
-/* ====== GPS GOMB ====== */
+/* ====== GPS GOMB - a térképet a kék pontra (saját pozíció) központosítja ====== */
 document.getElementById('gpsBtn').addEventListener('click', () => {
-  if (!navigator.geolocation) {
-    showStatus("A böngésződ nem támogatja a GPS-t");
-    return;
+  if (myLocationMarker) {
+    map.setCenter(myLocationMarker.getPosition());
+    map.setZoom(MARKET_ZOOM);
+    showStatus("A kék pontra kattintva vehetsz fel új standot itt.");
+  } else {
+    showStatus("Helymeghatározás folyamatban...", 4000);
   }
-  showStatus("Helymeghatározás...", 10000);
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      map.setCenter({ lat, lng });
-      handleNewPosition(lat, lng);
-    },
-    err => {
-      showStatus("GPS hiba: " + err.message, 4000);
-    },
-    { enableHighAccuracy: true, timeout: 8000 }
-  );
 });
 
 /* ====== GYORS ÁRBEVITEL ====== */
