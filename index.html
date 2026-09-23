@@ -518,6 +518,10 @@ function openLogConfirm(type) {
   showConfirmScreen(type, parsed, nearby, suggestion);
 }
 
+function unitLabel(u) {
+  return { kg: 'kg', db: 'db', rekesz: 'rekesz', lada: 'láda' }[u] || (u || 'kg');
+}
+
 function showConfirmScreen(type, parsed, nearby, suggestion) {
   const isPurchase = type === 'vasarlas';
   const content = document.getElementById('panelContent');
@@ -538,11 +542,33 @@ function showConfirmScreen(type, parsed, nearby, suggestion) {
     '</div></div>'
   ) : '';
 
+  const unitSelectHtml =
+    '<div class="row"><select id="confirmUnit" style="flex:1;">' +
+    '<option value="kg">Ft / kg</option>' +
+    '<option value="db">Ft / db</option>' +
+    '<option value="rekesz">Ft / rekesz</option>' +
+    '<option value="lada">Ft / láda</option>' +
+    '</select></div>';
+
+  const crateHtml = isPurchase
+    ? '<p style="margin:14px 0 4px;font-weight:bold;">Kell csere edényzet vinni?</p>' +
+      '<div class="row">' +
+      '<select id="confirmCrateType" style="flex:1;">' +
+      '<option value="">Nincs</option>' +
+      '<option value="rekesz">Rekesz</option>' +
+      '<option value="lada">Láda</option>' +
+      '</select>' +
+      '<input type="number" id="confirmCrateQty" placeholder="mennyi db" min="0" step="1" style="width:110px;">' +
+      '</div>'
+    : '';
+
   content.innerHTML =
     '<h3>' + (isPurchase ? '🛒 Vásárlás megerősítése' : '📝 Árazás megerősítése') + '</h3>' +
     suggestionHtml +
     '<p style="font-size:17px;"><strong>' + escapeHtml(parsed.item) + '</strong> — ' + parsed.price + ' Ft</p>' +
-    (isPurchase ? '<div class="row"><input type="number" id="confirmQty" placeholder="mennyiség (kg) - opcionális" min="0" step="0.1" style="width:100%;"></div>' : '') +
+    unitSelectHtml +
+    (isPurchase ? '<div class="row"><input type="number" id="confirmQty" placeholder="mennyiség - opcionális" min="0" step="0.1" style="width:100%;"></div>' : '') +
+    crateHtml +
     '<p style="margin:14px 0 4px;font-weight:bold;">Melyik standhoz rögzítsük?</p>' +
     '<div id="confirmVendorList">' + radios + '</div>' +
     '<div class="row" style="margin-top:16px;">' +
@@ -567,13 +593,17 @@ function showConfirmScreen(type, parsed, nearby, suggestion) {
     const checked = document.querySelector('input[name=confirmVendor]:checked');
     const vendorId = checked ? checked.value : null;
     if (!vendorId) { showStatus("Válassz standot!"); return; }
+    const unit = document.getElementById('confirmUnit').value;
 
     if (isPurchase) {
       const qtyRaw = document.getElementById('confirmQty').value;
       const qty = qtyRaw ? parseFloat(qtyRaw) : null;
-      savePurchase(vendorId, parsed.item, parsed.price, qty, todayStr());
+      const crateType = document.getElementById('confirmCrateType').value || null;
+      const crateQtyRaw = document.getElementById('confirmCrateQty').value;
+      const crateQty = crateType && crateQtyRaw ? parseFloat(crateQtyRaw) : null;
+      savePurchase(vendorId, parsed.item, parsed.price, qty, unit, crateType, crateQty, todayStr());
     } else {
-      saveArazas(vendorId, parsed.item, parsed.price, todayStr());
+      saveArazas(vendorId, parsed.item, parsed.price, unit, todayStr());
     }
     selectedStandId = vendorId;
     renderMarkers();
@@ -582,11 +612,11 @@ function showConfirmScreen(type, parsed, nearby, suggestion) {
   });
 }
 
-function saveArazas(vendorId, item, price, date) {
+function saveArazas(vendorId, item, price, unit, date) {
   const entry = {
     vendorId,
     vendorName: (vendors[vendorId] && vendors[vendorId].name) || '',
-    item, price, date,
+    item, price, unit: unit || 'kg', date,
     timestamp: Date.now(),
   };
   if (firebaseReady) {
@@ -599,15 +629,18 @@ function saveArazas(vendorId, item, price, date) {
     lastSaved = { type: 'arazas', localIndex: entries.length - 1 };
   }
   knownItems.add(item.trim().toLowerCase());
-  showUndoToast('Árazás mentve: ' + item + ' — ' + price + ' Ft (' + entry.vendorName + ')');
+  showUndoToast('Árazás mentve: ' + item + ' — ' + price + ' Ft/' + unitLabel(entry.unit) + ' (' + entry.vendorName + ')');
 }
 
-function savePurchase(vendorId, item, price, quantity, date) {
+function savePurchase(vendorId, item, price, quantity, unit, crateType, crateQty, date) {
   const entry = {
     vendorId,
     vendorName: (vendors[vendorId] && vendors[vendorId].name) || '',
     item, price,
+    unit: unit || 'kg',
     quantity: (quantity === null || quantity === undefined || isNaN(quantity)) ? null : quantity,
+    crateType: crateType || null,
+    crateQty: (crateType && crateQty && !isNaN(crateQty)) ? crateQty : null,
     date,
     collected: false,
     timestamp: Date.now(),
@@ -623,7 +656,8 @@ function savePurchase(vendorId, item, price, quantity, date) {
     renderMarkers();
   }
   knownItems.add(item.trim().toLowerCase());
-  showUndoToast('Vásárlás mentve: ' + item + ' — ' + price + ' Ft (' + entry.vendorName + ')');
+  const crateNote = entry.crateType ? (' + ' + entry.crateQty + ' ' + unitLabel(entry.crateType) + ' csere') : '';
+  showUndoToast('Vásárlás mentve: ' + item + ' — ' + price + ' Ft/' + unitLabel(entry.unit) + crateNote + ' (' + entry.vendorName + ')');
 }
 
 /* ====== STAND PANEL ====== */
@@ -640,7 +674,7 @@ function openVendorPanel(id) {
   loadVendorEntries(id).then(entries => {
     entries.sort((a, b) => b.timestamp - a.timestamp);
     let rows = entries.map(e =>
-      '<tr><td>' + e.date + '</td><td>' + escapeHtml(e.item) + '</td><td>' + e.price + ' Ft</td></tr>'
+      '<tr><td>' + e.date + '</td><td>' + escapeHtml(e.item) + '</td><td>' + e.price + ' Ft/' + unitLabel(e.unit) + '</td></tr>'
     ).join('');
     if (!rows) rows = '<tr><td colspan="3">Még nincs rögzített árazás ennél a standnál.</td></tr>';
 
@@ -755,10 +789,10 @@ function purchaseCost(e) {
 }
 
 function renderEntryTable(container, list, isPurchase) {
-  const rowHtml = e => '<tr><td>' + e.date + '</td><td>' + escapeHtml(e.vendorName || '?') + '</td><td>' + escapeHtml(e.item) + '</td>' + (isPurchase ? ('<td>' + (e.quantity != null ? e.quantity : '-') + '</td>') : '') + '<td>' + e.price + ' Ft</td></tr>';
-  const headerHtml = '<tr><th>Dátum</th><th>Stand</th><th>Termék</th>' + (isPurchase ? '<th>Menny.</th>' : '') + '<th>Ár</th></tr>';
+  const rowHtml = e => '<tr><td>' + e.date + '</td><td>' + escapeHtml(e.vendorName || '?') + '</td><td>' + escapeHtml(e.item) + '</td>' + (isPurchase ? ('<td>' + (e.quantity != null ? e.quantity : '-') + '</td>') : '') + '<td>' + e.price + ' Ft/' + unitLabel(e.unit) + '</td>' + (isPurchase && e.crateType ? ('<td>' + e.crateQty + ' ' + unitLabel(e.crateType) + '</td>') : (isPurchase ? '<td>-</td>' : '')) + '</tr>';
+  const headerHtml = '<tr><th>Dátum</th><th>Stand</th><th>Termék</th>' + (isPurchase ? '<th>Menny.</th>' : '') + '<th>Ár</th>' + (isPurchase ? '<th>Csere</th>' : '') + '</tr>';
   let rows = list.map(rowHtml).join('');
-  if (!rows) rows = '<tr><td colspan="' + (isPurchase ? 5 : 4) + '">Még nincs adat.</td></tr>';
+  if (!rows) rows = '<tr><td colspan="' + (isPurchase ? 6 : 4) + '">Még nincs adat.</td></tr>';
 
   let summaryHtml = '';
   if (isPurchase) {
@@ -776,7 +810,7 @@ function renderEntryTable(container, list, isPurchase) {
   document.getElementById('filterInput').addEventListener('input', e => {
     const q = e.target.value.trim().toLowerCase();
     const filtered = q ? list.filter(en => en.item.toLowerCase().includes(q)) : list;
-    document.getElementById('listTable').innerHTML = headerHtml + (filtered.map(rowHtml).join('') || ('<tr><td colspan="' + (isPurchase ? 5 : 4) + '">Nincs találat.</td></tr>'));
+    document.getElementById('listTable').innerHTML = headerHtml + (filtered.map(rowHtml).join('') || ('<tr><td colspan="' + (isPurchase ? 6 : 4) + '">Nincs találat.</td></tr>'));
   });
 }
 
@@ -786,15 +820,27 @@ function renderPickupList(container, purchases) {
     container.innerHTML = '<p>Nincs elviendő tétel - minden fel van pakolva. 🎉</p>';
     return;
   }
+  const crateTotals = {};
+  pending.forEach(e => {
+    if (e.crateType && e.crateQty) {
+      crateTotals[e.crateType] = (crateTotals[e.crateType] || 0) + Number(e.crateQty);
+    }
+  });
+  const crateSummary = Object.keys(crateTotals).length
+    ? '<div style="background:#fff3cd;border:1px solid #ffe08a;border-radius:6px;padding:10px;margin-bottom:10px;font-weight:bold;color:#8a5a00;">🧺 Vidd magaddal csereként: ' +
+      Object.entries(crateTotals).map(([t, q]) => q + ' ' + unitLabel(t)).join(', ') + '</div>'
+    : '';
+
   const rows = pending.map(e =>
     '<label style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid #eee;">' +
     '<input type="checkbox" class="pickupCheck" data-id="' + e.id + '" style="width:20px;height:20px;">' +
     '<span style="flex:1;">' +
-    '<strong>' + escapeHtml(e.item) + '</strong>' + (e.quantity != null ? ' (' + e.quantity + ' kg)' : '') +
-    '<br><small style="color:#888;">' + escapeHtml(e.vendorName || '?') + ' — ' + e.price + ' Ft — ' + e.date + '</small>' +
+    '<strong>' + escapeHtml(e.item) + '</strong>' + (e.quantity != null ? ' (' + e.quantity + ' ' + unitLabel(e.unit) + ')' : '') +
+    '<br><small style="color:#888;">' + escapeHtml(e.vendorName || '?') + ' — ' + e.price + ' Ft/' + unitLabel(e.unit) + ' — ' + e.date + '</small>' +
+    (e.crateType ? '<br><small style="color:#d84315;">+ ' + e.crateQty + ' ' + unitLabel(e.crateType) + ' csere edényzet</small>' : '') +
     '</span></label>'
   ).join('');
-  container.innerHTML = '<p style="color:#666;margin-top:0;">Pipáld ki, ha felpakoltad a kiskocsira.</p><div>' + rows + '</div>';
+  container.innerHTML = crateSummary + '<p style="color:#666;margin-top:0;">Pipáld ki, ha felpakoltad a kiskocsira.</p><div>' + rows + '</div>';
 
   container.querySelectorAll('.pickupCheck').forEach(cb => {
     cb.addEventListener('change', (e) => {
@@ -817,7 +863,7 @@ function renderCheapestToday(container, entries) {
   }
   const byItem = {};
   todays.forEach(e => {
-    const key = e.item.trim().toLowerCase();
+    const key = e.item.trim().toLowerCase() + '|' + (e.unit || 'kg');
     (byItem[key] = byItem[key] || []).push(e);
   });
 
@@ -825,7 +871,7 @@ function renderCheapestToday(container, entries) {
   Object.keys(byItem).sort().forEach(key => {
     const list = byItem[key].sort((a, b) => a.price - b.price);
     html += '<div style="margin-bottom:16px;">' +
-      '<div style="font-weight:bold;color:#1b5e20;font-size:15px;">' + escapeHtml(list[0].item) + '</div>' +
+      '<div style="font-weight:bold;color:#1b5e20;font-size:15px;">' + escapeHtml(list[0].item) + ' <small style="color:#888;font-weight:normal;">(Ft/' + unitLabel(list[0].unit) + ')</small></div>' +
       '<table><tr><th>Stand</th><th>Ár</th></tr>' +
       list.map((e, i) => '<tr' + (i === 0 ? ' style="background:#e8f5e9;font-weight:bold;"' : '') + '><td>' + escapeHtml(e.vendorName || '?') + '</td><td>' + e.price + ' Ft</td></tr>').join('') +
       '</table></div>';
