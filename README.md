@@ -1,42 +1,51 @@
 # Nagybani Gastro — Piaci árfigyelő térkép
 
-Egyfájlos webapp a Budapesti Nagybani Piacon való eligazodáshoz és árköveteshez. Google Maps alapú, a piac területére rögzítve, Firebase-en valós időben szinkronizál több telefon között.
+Egyfájlos webapp a Budapesti Nagybani Piacon való eligazodáshoz és árköveteshez.
 
-## Fő funkciók
+## Mi került be eddig, verziónként
 
-**Térkép**
-- A térkép mindig csak a Nagybani Piac területét mutatja — nem lehet kihúzni vagy kizoomolni máshova.
-- Élő kék pont mutatja a saját pozíciódat.
-- Standot fel lehet venni a kék pontra kattintva, vagy a térkép bármely pontján hosszan nyomva.
-- Minden stand egy feliratos pin — a névvel együtt jelenik meg a térképen.
-- A ma megvásárolt standok élénk pink színnel kiemelődnek, a kedvenc standok ⭐-gal.
+**v1.0 — Alapok**
+- Térkép (Google Maps), standok felvétele kattintással/GPS-szel
+- Gyors árbevitel: "termék ár" formátum
+- Firebase szinkron több eszköz közt
+- GitHub repo + verziózás (git tag minden push-nál)
 
-**Árazás vs. Vásárlás**
-- **Mentés** = árazás — csak megnézted az árat, nem vetted meg.
-- **🛒 Vásárolva** = ténylegesen megvásárolt tétel, mennyiséggel.
-- Mindkettő a GPS-pozíciód alapján megkérdezi, melyik közeli standhoz rögzítse, és egy megerősítő képernyőn kell jóváhagyni — véletlen elgépelés/rossz stand ellen.
-- Mértékegység választható: Ft/kg, Ft/db, Ft/rekesz, Ft/láda.
-- Vásárlásnál jelölhető, ha csere rekeszt/ládát kell vinni (típus + mennyiség).
+**v1.1 — Kék pont**
+- Élő GPS-pozíció kék pontként a térképen
+- Stand felvétele csak a kék pontra kattintva (nem bárhol a térképen)
 
-**Segéd funkciók**
-- Hiányzó ár/termék felismerése, elgépelés-javaslat a korábban rögzített termékekhez képest.
-- 🎤 Hangbevitel gyors rögzítéshez.
-- Visszavonás gomb minden mentés után.
+**v1.2 — Térkép a piacra rögzítve**
+- Fix középpont a Nagybani Piacon
+- Nem lehet kihúzni/kizoomolni máshova (pan/zoom korlátozás)
 
-**Listák (📋 gomb)**
-- **📝 Árazások** — összes felmért ár, szűrhető.
-- **🛒 Vásárlások** — ténylegesen megvett tételek, napi összköltséggel.
-- **🧺 Elviendő** — megvásárolt, de még fel nem pakolt tételek pipálható checklistje, a szükséges csere edényzet összesítésével.
-- **💰 Legolcsóbb ma** — a mai árazások alapján zöldségenként, standonként rendezve, a legolcsóbb kiemelve.
+**v1.3 — Nagyobb bővítés**
+- Hosszan nyomással is felvehető stand bárhol a térképen
+- Feliratos pin-ek (stand neve a pötty mellett)
+- Ma megvásárolt standok pink kiemeléssel
+- Két külön gomb: Mentés (árazás) és 🛒 Vásárolva
+- Mindkettő GPS-közelség alapján kérdez rá, melyik standhoz rögzítsen
+- Megerősítő képernyő mindkét gombnál (véletlen összekeverés ellen)
+- Vásárlások külön tárolva (stand, mennyiség, termék, ár, dátum)
+- 💰 Legolcsóbb ma nézet
 
-**Stand adatlap**
-- Átnevezhető, csillagozható (kedvenc), szabad szöveges jegyzettel (minőség, telefonszám, nyitvatartás stb.).
+**v1.4 — Hibavédelem**
+- Hiányzó ár/termék jelzése egyértelmű üzenettel
+- Elgépelés-ellenőrzés (pl. "ubirka" → "uborka?") a korábbi termékekhez képest
+
+**v1.5 — Munkafolyamat-segítők**
+- 🧺 Elviendő lista: megvásárolt, még fel nem pakolt tételek pipálható checklistje
+- Napi vásárlási összegzés (tétel + Ft)
+- Visszavonás gomb minden mentés után
+- 🎤 Hangbevitel gyors rögzítéshez
+
+**v1.6 — Mértékegység és csere edényzet**
+- Mértékegység választó: Ft/kg, Ft/db, Ft/rekesz, Ft/láda
+- Csere rekesz/láda jelölése vásárláskor (típus + mennyiség)
+- Összesítve az Elviendő listán ("vidd magaddal csereként...")
+
+**v1.7 — Stand adatlap bővítés**
+- Kedvenc standok csillagozása (⭐ a pin feliratban is)
+- Szabad szöveges jegyzet standonként (minőség, telefonszám, nyitvatartás stb.)
 
 ## Technikai háttér
-- Egyfájlos HTML (`index.html`), build eszköz nélkül.
-- Google Maps JavaScript API a térképhez.
-- Firebase Realtime Database a szinkronizáláshoz (offline módban localStorage-ba esik vissza).
-- GitHub Pages-en hosztolva.
-
-## Verziózás
-Minden módosítás git commit + tag formájában kerül a repóba (`VERSION` fájl követi az aktuális verziószámot).
+Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realtime Database (offline esetén localStorage) · GitHub Pages
