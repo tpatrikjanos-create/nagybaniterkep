@@ -89,8 +89,11 @@ const firebaseConfig = {
 };
 
 // Piac középpontja - állítsd be a saját nagybani piac koordinátáira
-const MARKET_CENTER = { lat: 47.4979, lng: 19.0402 }; // Budapest, csak placeholder
+const MARKET_CENTER = { lat: 47.414838, lng: 19.168016 }; // Budapesti Nagybani Piac, Nagykőrösi út
 const MARKET_ZOOM = 19;
+const MARKET_MIN_ZOOM = 17;
+const MARKET_MAX_ZOOM = 21;
+const MARKET_RADIUS_DEG = 0.006; // kb. a piac területét lefedő határ a középponttól
 
 /* ====== ÁLLAPOT ====== */
 let map;
@@ -140,11 +143,22 @@ function initMap() {
   map = new google.maps.Map(document.getElementById('map'), {
     center: MARKET_CENTER,
     zoom: MARKET_ZOOM,
+    minZoom: MARKET_MIN_ZOOM,
+    maxZoom: MARKET_MAX_ZOOM,
     mapTypeId: 'satellite',
     tilt: 0,
     streetViewControl: false,
     mapTypeControl: true,
     fullscreenControl: false,
+    restriction: {
+      latLngBounds: {
+        north: MARKET_CENTER.lat + MARKET_RADIUS_DEG,
+        south: MARKET_CENTER.lat - MARKET_RADIUS_DEG,
+        east: MARKET_CENTER.lng + MARKET_RADIUS_DEG,
+        west: MARKET_CENTER.lng - MARKET_RADIUS_DEG,
+      },
+      strictBounds: true,
+    },
   });
 
   initFirebase();
