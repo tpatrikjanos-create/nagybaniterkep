@@ -105,6 +105,7 @@ let markers = {};
 let purchasesCache = {};
 let db = null;
 let firebaseReady = false;
+let knownItems = new Set(); // korábban rögzített termék nevek (elgépelés-ellenőrzéshez)
 
 function showStatus(msg, ms = 2500) {
   const el = document.getElementById('status');
@@ -121,6 +122,44 @@ function escapeHtml(s) {
 }
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
+}
+
+/* ====== ELGÉPELÉS-ELLENŐRZÉS (korábban használt termékneveinkhez viszonyítva) ====== */
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+function refreshKnownItems() {
+  Promise.all([loadAllEntries(), loadAllPurchases()]).then(([entries, purchases]) => {
+    const set = new Set();
+    entries.forEach(e => { if (e.item) set.add(e.item.trim().toLowerCase()); });
+    purchases.forEach(e => { if (e.item) set.add(e.item.trim().toLowerCase()); });
+    knownItems = set;
+  });
+}
+
+function findSpellingSuggestion(item) {
+  const norm = item.trim().toLowerCase();
+  if (knownItems.has(norm) || knownItems.size === 0) return null;
+  let best = null, bestDist = Infinity;
+  knownItems.forEach(k => {
+    const d = levenshtein(norm, k);
+    if (d < bestDist) { bestDist = d; best = k; }
+  });
+  const threshold = norm.length <= 4 ? 1 : 2;
+  if (best && bestDist > 0 && bestDist <= threshold) return best;
+  return null;
 }
 
 /* ====== FIREBASE INIT ====== */
@@ -189,6 +228,7 @@ function initMap() {
 
   startLocationTracking();
   setupLongPress();
+  refreshKnownItems();
 }
 
 /* ====== HOSSZAN NYOMÁS A TÉRKÉPEN - ÚJ STAND BÁRHOL ====== */
@@ -403,22 +443,39 @@ document.getElementById('quickEntry').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') openLogConfirm('arazas');
 });
 
-function parseQuickEntry(text) {
-  const match = text.trim().match(/^(.+?)\s+(\d+([.,]\d+)?)\s*(ft|huf)?$/i);
-  if (!match) return null;
-  const item = match[1].trim();
-  const price = parseFloat(match[2].replace(',', '.'));
-  if (!item || isNaN(price)) return null;
+function analyzeQuickEntry(raw) {
+  const text = raw.trim();
+  if (!text) return { error: 'empty' };
+
+  // az utolsó számot vesszük árnak, ami előtte van az a termék neve
+  const priceMatch = text.match(/(\d+([.,]\d+)?)\s*(ft|huf)?\s*$/i);
+  if (!priceMatch) {
+    return { error: 'noPrice', item: text };
+  }
+  const price = parseFloat(priceMatch[1].replace(',', '.'));
+  const item = text.slice(0, priceMatch.index).trim();
+  if (!item) return { error: 'noItem' };
+  if (isNaN(price)) return { error: 'noPrice', item };
   return { item, price };
 }
 
 function openLogConfirm(type) {
   const raw = document.getElementById('quickEntry').value;
-  const parsed = parseQuickEntry(raw);
-  if (!parsed) {
-    showStatus('Formátum: "termék ár" — pl. "uborka 400"');
+  const parsed = analyzeQuickEntry(raw);
+
+  if (parsed.error === 'empty') {
+    showStatus('Írj be egy terméket és árat, pl. "uborka 400"');
     return;
   }
+  if (parsed.error === 'noPrice') {
+    showStatus('⚠️ Hiányzik az ár! Add meg így: "' + parsed.item + ' 400"');
+    return;
+  }
+  if (parsed.error === 'noItem') {
+    showStatus('⚠️ Hiányzik a termék neve!');
+    return;
+  }
+
   if (!myLocationMarker) {
     showStatus("Várj, amíg az app megtalálja a pozíciódat...");
     return;
@@ -429,10 +486,11 @@ function openLogConfirm(type) {
     showStatus("Nincs felvett stand a közelben - vegyél fel egyet a kék pontra kattintva, vagy nyomd hosszan a térképet.");
     return;
   }
-  showConfirmScreen(type, parsed, nearby);
+  const suggestion = findSpellingSuggestion(parsed.item);
+  showConfirmScreen(type, parsed, nearby, suggestion);
 }
 
-function showConfirmScreen(type, parsed, nearby) {
+function showConfirmScreen(type, parsed, nearby, suggestion) {
   const isPurchase = type === 'vasarlas';
   const content = document.getElementById('panelContent');
 
@@ -443,8 +501,18 @@ function showConfirmScreen(type, parsed, nearby) {
     '</label>'
   ).join('');
 
+  const suggestionHtml = suggestion ? (
+    '<div style="background:#fff3cd;border:1px solid #ffe08a;border-radius:6px;padding:10px;margin-bottom:12px;">' +
+    '<div style="margin-bottom:8px;">🤔 Erre gondoltál: <strong>' + escapeHtml(suggestion) + '</strong> (te ezt írtad: "' + escapeHtml(parsed.item) + '")?</div>' +
+    '<div style="display:flex;gap:8px;">' +
+    '<button id="suggYesBtn" style="flex:1;background:#1b5e20;color:white;border:none;border-radius:6px;padding:8px;">Igen, javítsd</button>' +
+    '<button id="suggNoBtn" style="flex:1;background:white;color:#333;border:1px solid #ccc;border-radius:6px;padding:8px;">Nem, marad</button>' +
+    '</div></div>'
+  ) : '';
+
   content.innerHTML =
     '<h3>' + (isPurchase ? '🛒 Vásárlás megerősítése' : '📝 Árazás megerősítése') + '</h3>' +
+    suggestionHtml +
     '<p style="font-size:17px;"><strong>' + escapeHtml(parsed.item) + '</strong> — ' + parsed.price + ' Ft</p>' +
     (isPurchase ? '<div class="row"><input type="number" id="confirmQty" placeholder="mennyiség (kg) - opcionális" min="0" step="0.1" style="width:100%;"></div>' : '') +
     '<p style="margin:14px 0 4px;font-weight:bold;">Melyik standhoz rögzítsük?</p>' +
@@ -456,6 +524,15 @@ function showConfirmScreen(type, parsed, nearby) {
 
   document.getElementById('panel').classList.add('open');
   document.getElementById('overlay').classList.add('open');
+
+  if (suggestion) {
+    document.getElementById('suggYesBtn').addEventListener('click', () => {
+      showConfirmScreen(type, { item: suggestion, price: parsed.price }, nearby, null);
+    });
+    document.getElementById('suggNoBtn').addEventListener('click', () => {
+      showConfirmScreen(type, parsed, nearby, null);
+    });
+  }
 
   document.getElementById('confirmCancelBtn').addEventListener('click', closePanel);
   document.getElementById('confirmOkBtn').addEventListener('click', () => {
@@ -491,6 +568,7 @@ function saveArazas(vendorId, item, price, date) {
     entries.push(entry);
     localStorage.setItem('piaci_entries', JSON.stringify(entries));
   }
+  knownItems.add(item.trim().toLowerCase());
   showStatus('Árazás mentve: ' + item + ' — ' + price + ' Ft (' + entry.vendorName + ')');
 }
 
@@ -511,6 +589,7 @@ function savePurchase(vendorId, item, price, quantity, date) {
     localStorage.setItem('piaci_purchases', JSON.stringify(purchases));
     renderMarkers();
   }
+  knownItems.add(item.trim().toLowerCase());
   showStatus('Vásárlás mentve: ' + item + ' — ' + price + ' Ft (' + entry.vendorName + ')');
 }
 
