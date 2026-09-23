@@ -59,6 +59,7 @@
 
 <div id="topbar">
   <input type="text" id="quickEntry" placeholder="pl. uborka 400" autocomplete="off">
+  <button id="micBtn" class="gps" title="Hangbevitel">🎤</button>
   <button id="saveBtn">Mentés</button>
   <button id="buyBtn" class="secondary">🛒 Vásárolva</button>
   <button id="gpsBtn" class="gps">📍 GPS</button>
@@ -113,6 +114,33 @@ function showStatus(msg, ms = 2500) {
   el.style.display = 'block';
   clearTimeout(showStatus._t);
   showStatus._t = setTimeout(() => { el.style.display = 'none'; }, ms);
+}
+
+let lastSaved = null; // { type: 'arazas'|'vasarlas', firebaseKey } vagy { type, localIndex }
+
+function showUndoToast(msg) {
+  const el = document.getElementById('status');
+  el.innerHTML = escapeHtml(msg) + ' <button id="undoBtn" style="margin-left:10px;background:#ffb300;color:#222;border:none;border-radius:4px;padding:4px 10px;font-weight:bold;">Visszavonás</button>';
+  el.style.display = 'block';
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { el.style.display = 'none'; }, 6000);
+  document.getElementById('undoBtn').addEventListener('click', undoLastSave);
+}
+
+function undoLastSave() {
+  if (!lastSaved) return;
+  const node = lastSaved.type === 'arazas' ? 'priceEntries' : 'purchases';
+  if (lastSaved.firebaseKey) {
+    db.ref(node + '/' + lastSaved.firebaseKey).remove();
+  } else if (lastSaved.localIndex != null) {
+    const key = lastSaved.type === 'arazas' ? 'piaci_entries' : 'piaci_purchases';
+    const arr = JSON.parse(localStorage.getItem(key) || '[]');
+    arr.splice(lastSaved.localIndex, 1);
+    localStorage.setItem(key, JSON.stringify(arr));
+    if (lastSaved.type === 'vasarlas') renderMarkers();
+  }
+  showStatus('Visszavonva.');
+  lastSaved = null;
 }
 
 function escapeHtml(s) {
@@ -562,14 +590,16 @@ function saveArazas(vendorId, item, price, date) {
     timestamp: Date.now(),
   };
   if (firebaseReady) {
-    db.ref('priceEntries').push(entry);
+    const ref = db.ref('priceEntries').push(entry);
+    lastSaved = { type: 'arazas', firebaseKey: ref.key };
   } else {
     const entries = JSON.parse(localStorage.getItem('piaci_entries') || '[]');
     entries.push(entry);
     localStorage.setItem('piaci_entries', JSON.stringify(entries));
+    lastSaved = { type: 'arazas', localIndex: entries.length - 1 };
   }
   knownItems.add(item.trim().toLowerCase());
-  showStatus('Árazás mentve: ' + item + ' — ' + price + ' Ft (' + entry.vendorName + ')');
+  showUndoToast('Árazás mentve: ' + item + ' — ' + price + ' Ft (' + entry.vendorName + ')');
 }
 
 function savePurchase(vendorId, item, price, quantity, date) {
@@ -579,18 +609,21 @@ function savePurchase(vendorId, item, price, quantity, date) {
     item, price,
     quantity: (quantity === null || quantity === undefined || isNaN(quantity)) ? null : quantity,
     date,
+    collected: false,
     timestamp: Date.now(),
   };
   if (firebaseReady) {
-    db.ref('purchases').push(entry);
+    const ref = db.ref('purchases').push(entry);
+    lastSaved = { type: 'vasarlas', firebaseKey: ref.key };
   } else {
     const purchases = JSON.parse(localStorage.getItem('piaci_purchases') || '[]');
     purchases.push(entry);
     localStorage.setItem('piaci_purchases', JSON.stringify(purchases));
+    lastSaved = { type: 'vasarlas', localIndex: purchases.length - 1 };
     renderMarkers();
   }
   knownItems.add(item.trim().toLowerCase());
-  showStatus('Vásárlás mentve: ' + item + ' — ' + price + ' Ft (' + entry.vendorName + ')');
+  showUndoToast('Vásárlás mentve: ' + item + ' — ' + price + ' Ft (' + entry.vendorName + ')');
 }
 
 /* ====== STAND PANEL ====== */
@@ -654,9 +687,27 @@ function loadAllEntries() {
 }
 function loadAllPurchases() {
   if (firebaseReady) {
-    return db.ref('purchases').once('value').then(snap => Object.values(snap.val() || {}));
+    return db.ref('purchases').once('value').then(snap => {
+      const out = [];
+      snap.forEach(child => { out.push(Object.assign({ id: child.key }, child.val())); });
+      return out;
+    });
   } else {
-    return Promise.resolve(JSON.parse(localStorage.getItem('piaci_purchases') || '[]'));
+    const arr = JSON.parse(localStorage.getItem('piaci_purchases') || '[]');
+    return Promise.resolve(arr.map((e, i) => Object.assign({ id: 'local_' + i }, e)));
+  }
+}
+
+function toggleCollected(purchaseId, collected) {
+  if (firebaseReady) {
+    db.ref('purchases/' + purchaseId + '/collected').set(collected);
+  } else {
+    const idx = parseInt(purchaseId.replace('local_', ''), 10);
+    const arr = JSON.parse(localStorage.getItem('piaci_purchases') || '[]');
+    if (arr[idx]) {
+      arr[idx].collected = collected;
+      localStorage.setItem('piaci_purchases', JSON.stringify(arr));
+    }
   }
 }
 
@@ -673,8 +724,8 @@ function renderMainListTab(tab) {
     '<button data-tab="' + id + '" style="flex:1;padding:10px 4px;border:none;border-bottom:3px solid ' + (tab === id ? '#1b5e20' : 'transparent') + ';background:' + (tab === id ? '#e8f5e9' : '#f5f5f5') + ';font-weight:' + (tab === id ? 'bold' : 'normal') + ';font-size:13px;cursor:pointer;">' + label + '</button>';
 
   content.innerHTML =
-    '<div style="display:flex;margin-bottom:12px;border-radius:6px;overflow:hidden;">' +
-    tabBtn('arazas', '📝 Árazások') + tabBtn('vasarlas', '🛒 Vásárlások') + tabBtn('cheapest', '💰 Legolcsóbb ma') +
+    '<div style="display:flex;margin-bottom:12px;border-radius:6px;overflow:hidden;flex-wrap:wrap;">' +
+    tabBtn('arazas', '📝 Árazások') + tabBtn('vasarlas', '🛒 Vásárlások') + tabBtn('pickup', '🧺 Elviendő') + tabBtn('cheapest', '💰 Legolcsóbb ma') +
     '</div><div id="tabContent"><p>Betöltés...</p></div>';
 
   content.querySelectorAll('button[data-tab]').forEach(btn => {
@@ -692,9 +743,15 @@ function renderMainListTab(tab) {
       purchases.sort((a, b) => b.timestamp - a.timestamp);
       renderEntryTable(tabContent, purchases, true);
     });
+  } else if (tab === 'pickup') {
+    loadAllPurchases().then(purchases => renderPickupList(tabContent, purchases));
   } else if (tab === 'cheapest') {
     loadAllEntries().then(entries => renderCheapestToday(tabContent, entries));
   }
+}
+
+function purchaseCost(e) {
+  return (e.quantity != null && !isNaN(e.quantity)) ? e.price * e.quantity : e.price;
 }
 
 function renderEntryTable(container, list, isPurchase) {
@@ -703,7 +760,16 @@ function renderEntryTable(container, list, isPurchase) {
   let rows = list.map(rowHtml).join('');
   if (!rows) rows = '<tr><td colspan="' + (isPurchase ? 5 : 4) + '">Még nincs adat.</td></tr>';
 
+  let summaryHtml = '';
+  if (isPurchase) {
+    const today = todayStr();
+    const todays = list.filter(e => e.date === today);
+    const total = todays.reduce((sum, e) => sum + purchaseCost(e), 0);
+    summaryHtml = '<div style="background:#e8f5e9;border-radius:6px;padding:10px;margin-bottom:8px;font-weight:bold;color:#1b5e20;">Mai vásárlások: ' + todays.length + ' tétel, összesen ~' + Math.round(total) + ' Ft</div>';
+  }
+
   container.innerHTML =
+    summaryHtml +
     '<input type="text" id="filterInput" placeholder="Szűrés termékre..." style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;margin-bottom:8px;">' +
     '<table id="listTable">' + headerHtml + rows + '</table>';
 
@@ -711,6 +777,34 @@ function renderEntryTable(container, list, isPurchase) {
     const q = e.target.value.trim().toLowerCase();
     const filtered = q ? list.filter(en => en.item.toLowerCase().includes(q)) : list;
     document.getElementById('listTable').innerHTML = headerHtml + (filtered.map(rowHtml).join('') || ('<tr><td colspan="' + (isPurchase ? 5 : 4) + '">Nincs találat.</td></tr>'));
+  });
+}
+
+function renderPickupList(container, purchases) {
+  const pending = purchases.filter(e => !e.collected).sort((a, b) => b.timestamp - a.timestamp);
+  if (!pending.length) {
+    container.innerHTML = '<p>Nincs elviendő tétel - minden fel van pakolva. 🎉</p>';
+    return;
+  }
+  const rows = pending.map(e =>
+    '<label style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid #eee;">' +
+    '<input type="checkbox" class="pickupCheck" data-id="' + e.id + '" style="width:20px;height:20px;">' +
+    '<span style="flex:1;">' +
+    '<strong>' + escapeHtml(e.item) + '</strong>' + (e.quantity != null ? ' (' + e.quantity + ' kg)' : '') +
+    '<br><small style="color:#888;">' + escapeHtml(e.vendorName || '?') + ' — ' + e.price + ' Ft — ' + e.date + '</small>' +
+    '</span></label>'
+  ).join('');
+  container.innerHTML = '<p style="color:#666;margin-top:0;">Pipáld ki, ha felpakoltad a kiskocsira.</p><div>' + rows + '</div>';
+
+  container.querySelectorAll('.pickupCheck').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const id = e.target.dataset.id;
+      toggleCollected(id, e.target.checked);
+      if (e.target.checked) {
+        e.target.closest('label').style.opacity = '0.4';
+        e.target.closest('label').style.textDecoration = 'line-through';
+      }
+    });
   });
 }
 
@@ -746,6 +840,34 @@ function closePanel() {
 }
 document.getElementById('panelClose').addEventListener('click', closePanel);
 document.getElementById('overlay').addEventListener('click', closePanel);
+
+/* ====== HANGBEVITEL ====== */
+function setupVoiceInput() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const micBtn = document.getElementById('micBtn');
+  if (!SpeechRecognition) {
+    micBtn.style.display = 'none';
+    return;
+  }
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'hu-HU';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  micBtn.addEventListener('click', () => {
+    showStatus('🎤 Hallgatlak...', 4000);
+    try { recognition.start(); } catch (e) { /* már fut, figyelmen kívül hagyjuk */ }
+  });
+  recognition.addEventListener('result', (e) => {
+    const text = e.results[0][0].transcript;
+    document.getElementById('quickEntry').value = text;
+    showStatus('Felismerve: "' + text + '"', 3000);
+  });
+  recognition.addEventListener('error', (e) => {
+    showStatus('Hangfelismerési hiba: ' + e.error, 3000);
+  });
+}
+setupVoiceInput();
 </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC64dO7Vgls7acLmfsocdxMcLOSF1dO1Rw&callback=initMap" async defer></script>
