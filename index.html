@@ -349,8 +349,8 @@ function saveLocalVendors() {
 }
 
 /* ====== MARKEREK (kis feliratos pin + kiemelés, ha ma itt vásároltunk) ====== */
-function buildVendorIcon(name, color, selected) {
-  const label = escapeHtml((name || 'Stand').slice(0, 22));
+function buildVendorIcon(name, color, selected, favorite) {
+  const label = escapeHtml((favorite ? '⭐ ' : '') + (name || 'Stand').slice(0, 22));
   const r = selected ? 10 : 8;
   const cx = 14, cy = 14;
   const textX = cx + r + 5;
@@ -394,9 +394,9 @@ function renderMarkers() {
     const marker = new google.maps.Marker({
       position: { lat: v.lat, lng: v.lng },
       map: map,
-      title: v.name || 'Stand',
-      icon: buildVendorIcon(v.name, color, isSelected),
-      zIndex: isSelected ? 500 : (boughtHere ? 300 : 100),
+      title: (v.favorite ? '⭐ ' : '') + (v.name || 'Stand'),
+      icon: buildVendorIcon(v.name, color, isSelected, v.favorite),
+      zIndex: isSelected ? 500 : (boughtHere ? 300 : (v.favorite ? 200 : 100)),
     });
     marker.addListener('click', () => openVendorPanel(id));
     markers[id] = marker;
@@ -678,12 +678,18 @@ function openVendorPanel(id) {
     ).join('');
     if (!rows) rows = '<tr><td colspan="3">Még nincs rögzített árazás ennél a standnál.</td></tr>';
 
+    const isFav = !!v.favorite;
+
     content.innerHTML =
-      '<h3>' + escapeHtml(v.name || 'Stand') + '</h3>' +
+      '<h3>' + (isFav ? '⭐ ' : '') + escapeHtml(v.name || 'Stand') + '</h3>' +
       '<div class="row">' +
       '<input type="text" id="renameInput" value="' + escapeHtml(v.name || '') + '" placeholder="Stand neve">' +
       '<button id="renameBtn" style="background:#1b5e20;color:white;border:none;border-radius:6px;padding:8px 12px;">Átnevez</button>' +
       '</div>' +
+      '<button id="favBtn" style="width:100%;margin-bottom:10px;background:' + (isFav ? '#ffb300' : '#eee') + ';color:' + (isFav ? '#222' : '#555') + ';border:none;border-radius:6px;padding:10px;font-weight:bold;">' +
+      (isFav ? '⭐ Kedvenc — kattints a törléshez' : '☆ Megjelölés kedvencként') + '</button>' +
+      '<textarea id="noteInput" placeholder="Jegyzet (pl. minőség, telefonszám, mikor van itt...)" style="width:100%;min-height:70px;padding:10px;border-radius:6px;border:1px solid #ccc;font-size:14px;font-family:inherit;">' + escapeHtml(v.note || '') + '</textarea>' +
+      '<button id="noteSaveBtn" style="width:100%;margin:8px 0 14px;background:#1976d2;color:white;border:none;border-radius:6px;padding:10px;font-weight:bold;">Jegyzet mentése</button>' +
       '<table><tr><th>Dátum</th><th>Termék</th><th>Ár</th></tr>' + rows + '</table>';
 
     document.getElementById('renameBtn').addEventListener('click', () => {
@@ -697,6 +703,30 @@ function openVendorPanel(id) {
         renderMarkers();
       }
       showStatus("Átnevezve: " + newName);
+    });
+
+    document.getElementById('favBtn').addEventListener('click', () => {
+      const newFav = !vendors[id].favorite;
+      vendors[id].favorite = newFav;
+      if (firebaseReady) {
+        db.ref('vendors/' + id + '/favorite').set(newFav);
+      } else {
+        saveLocalVendors();
+        renderMarkers();
+      }
+      showStatus(newFav ? "Kedvencekhez adva." : "Kedvencekből eltávolítva.");
+      openVendorPanel(id);
+    });
+
+    document.getElementById('noteSaveBtn').addEventListener('click', () => {
+      const note = document.getElementById('noteInput').value.trim();
+      vendors[id].note = note;
+      if (firebaseReady) {
+        db.ref('vendors/' + id + '/note').set(note);
+      } else {
+        saveLocalVendors();
+      }
+      showStatus("Jegyzet mentve.");
     });
   });
 }
