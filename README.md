@@ -60,3 +60,11 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Bevásárlás checklist a térképen: kipipáláskor stand (legközelebbi / új tű), ár, mennyiség, csere rekesz/láda.
 - Összesítő (stand szerint, összeg, hozandó edényzet) és összegyűjtő checklist.
 - Napi lista Firebase-ben (shopSession/current), localStorage fallback.
+
+## v2.1 – Kiszállítás: komissiózás
+- „Kiszállítás” gomb élesítve: hány címre szállítunk → üres címek létrehozása.
+- Cím szerkesztő: név, cím, megjegyzés; mentett címekből választható, új cím automatikusan elmentődik (Firebase `addressBook`).
+- Tételek pontos mennyiséggel, egységgel, egységárral (alap: Excel árlista, átírható); jelzi a ma beszerzett mennyiséghez képest a kiosztott/maradó/hiányzó mennyiséget.
+- Kiadott edényzet címenként: rekesz, láda, raklap.
+- Szállítólevél / számlamelléklet nyomtatása vagy PDF-be mentése (egy cím vagy az összes).
+- „Szállításra kész” jelölés, napi összesítő (rakodandó edényzet). Napi adat: Firebase `deliveryDay/current` + localStorage.
