@@ -95,3 +95,6 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 ## v2.6 – Termékikonok
 - Minden termék saját, a fájlba beépített ikont kap (🥕 🍅 🧅 🍄 🍎 …), hálózat nélkül is azonnal látszik; ez jelenik meg a lista, a checklist és a komissiózás termékválasztójában.
 - A Wikipédiáról töltött fotó továbbra is megpróbálkozik, és ha sikerül, felülírja az ikont. Ha az eszközön nem érhető el, egy üzenet jelzi, és az ikonok maradnak.
+
+## v2.7 – Logó
+- A Nagybani Gastro logó a kezdőképernyőn (kerek, üveg-fénnyel), a szállítólevél fejlécében, valamint böngésző-ikonként / kezdőképernyő-ikonként (apple-touch-icon) is megjelenik. A kép a fájlba van ágyazva, hálózat nélkül is látszik.
