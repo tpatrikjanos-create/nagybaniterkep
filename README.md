@@ -80,3 +80,9 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Új „Riportok” képernyő (7 / 30 / 90 nap / mind): eladási forgalom, beszerzési költség, becsült árrés, kiszállítások száma.
 - Forgalom címenként, legtöbbet értékesített termékek, beszerzési árak (átlag, legolcsóbb stand, árváltozás ▲▼), edényzet-egyenleg címenként.
 - CSV-export (Excelben megnyitható) az időszak szállításairól.
+
+## v2.4 – Árcédula-dizájn
+- Új vizuális nyelv a piaci világból: ládafal-háttér a kezdőképernyőn, matrica-sárga „árcédulák” (összegek, első riport-mutató, folyamatban lévő bevásárlás), lenyomódó, tapintható gombok.
+- Barlow Condensed (címek, számok, gombok) + Barlow (szöveg) – jól olvasható erős napfényben is, magyar ékezetekkel.
+- Laposabb, keretes kártyák; a végtelen lebegő animációk és a kártyánkénti beúszás megszűnt, a mozgás a műveletekre (kipipálás, lenyomás, lapok) reagál; a lebegő gomb csak kétszer pulzál.
+- Erősebb kontraszt és látható fókuszkeret.

@@ -292,7 +292,97 @@
   .ptab { width: 100%; border-collapse: collapse; font-size: 13.5px; } .ptab th { text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase; padding: 0 4px 6px; } .ptab td { padding: 7px 4px; border-top: 1px solid var(--line); } .ptab td.r, .ptab th.r { text-align: right; white-space: nowrap; }
   .up { color: #c62828; font-weight: 800; } .dn { color: var(--g700); font-weight: 800; }
   .rchips { display: flex; gap: 6px; margin-top: 8px; } .rchips button { border: none; background: rgba(255,255,255,.16); color: #fff; border-radius: 99px; padding: 7px 14px; font-weight: 700; font-size: 14px; cursor: pointer; } .rchips button.on { background: #fff; color: var(--g800); }
+
+  /* ===== v2.4 ÁRCÉDULA-DIZÁJN: ládafal, matrica-sárga árcédula, kondenzált piaci betű ===== */
+  :root {
+    --g900:#0e3b2c; --g800:#164a38; --g700:#1f6b4c; --g600:#2a8a60; --g100:#e1eadf; --g50:#f1f4ec;
+    --amber:#f4c51e; --amber2:#f4c51e; --tomato:#cf3a24;
+    --ink:#15201a; --muted:#566259; --card:#fbfbf7; --bg:#e9ece4; --line:#d0d6c7;
+    --shadow:0 2px 0 rgba(14,59,44,.14); --shadow-s:0 1px 0 rgba(14,59,44,.10);
+    --display:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;
+  }
+  body, button, input, select, textarea { font-family: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  h2, h3, h4, .home-title, .big-card b, .go-btn, .kpi b, .del-stats b, .stat b, .otot b, .ocard .on b, .pname, .crow .cmain b, .resume-card b, .csec h3 { font-family: var(--display); }
+
+  /* fejlécek: tömör ládafesték-zöld, sárga szegéllyel */
+  #topbar, .ls-head { background: var(--g900); border-radius: 0; box-shadow: none; border-bottom: 4px solid var(--amber); }
+  .ls-top h2 { font-size: 26px; font-weight: 700; letter-spacing: .2px; }
+  .icon-btn, #topbar button.ghost { border-radius: 8px; background: rgba(255,255,255,.14); }
+  .ls-search input { border-radius: 8px; } .ls-search button { border-radius: 8px; box-shadow: 0 2px 0 #b8900a; }
+  .chip { border-radius: 8px; } .rchips button { border-radius: 8px; }
+
+  /* kezdőképernyő: ládafal */
+  #homeScreen { background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 2px, transparent 2px 11px),
+    repeating-linear-gradient(180deg, #0f3e2e 0, #0f3e2e 88px, #082a1e 88px, #082a1e 92px); }
+  .home-emojis { display: none; }
+  .home-inner { justify-content: flex-end; gap: 10px; padding-bottom: 24px; }
+  .home-brand { align-self: flex-start; background: var(--amber); color: var(--ink); padding: 5px 12px; border-radius: 4px; font-size: 15px; letter-spacing: .3px; opacity: 1;
+    transform: rotate(-2deg); box-shadow: 3px 3px 0 rgba(0,0,0,.35); font-family: var(--display); font-weight: 700; text-transform: none; }
+  .home-title { font-family: var(--display); font-size: clamp(44px, 13vw, 66px); line-height: .92; font-weight: 800; text-transform: uppercase; color: #f2f0e4; margin: 6px 0 20px; letter-spacing: .5px; }
+  .home-title em { color: inherit; }
+  .big-card { border-radius: 10px; background: #f2f0e4; box-shadow: 0 4px 0 rgba(0,0,0,.4); border-left: 8px solid var(--amber); padding: 11px 14px; gap: 12px; }
+  .big-card:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+  .big-card .bc-ico { width: 44px; height: 44px; background: none; border-radius: 0; font-size: 34px; }
+  .big-card b { font-size: 25px; font-weight: 700; line-height: 1; margin-bottom: 3px; }
+  .big-card small { font-size: 14px; color: var(--muted); }
+  .big-card.alt { background: transparent; border: 2px solid rgba(242,240,228,.35); border-left: 8px solid rgba(242,240,228,.35); box-shadow: none; color: #f2f0e4; }
+  .big-card.alt:active { transform: scale(.98); box-shadow: none; } .big-card.alt small { color: rgba(242,240,228,.72); }
+  .resume-card { border-radius: 6px; transform: rotate(-1.2deg); box-shadow: 4px 4px 0 rgba(0,0,0,.4); background: var(--amber); }
+  .resume-card b { font-size: 24px; font-weight: 700; }
+
+  /* gombok: tapintható, lenyomódó */
+  .go-btn { border-radius: 10px; background: var(--g700); box-shadow: 0 4px 0 var(--g900); font-size: 22px; font-weight: 700; letter-spacing: .3px; padding: 13px 14px; }
+  .go-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--g900); }
+  .go-btn:disabled { opacity: .5; box-shadow: 0 4px 0 var(--g900); }
+  .go-btn.amber { background: var(--amber); color: var(--ink); box-shadow: 0 4px 0 #b8900a; }
+  .go-btn.amber:active { box-shadow: 0 1px 0 #b8900a; }
+  .go-btn.ghost2 { background: var(--card); color: var(--g800); box-shadow: 0 4px 0 var(--line); border: 1.5px solid var(--line); }
+  .ls-bar { background: linear-gradient(to top, var(--bg) 70%, rgba(233,236,228,0)); }
+  #shopFab { border-radius: 10px; font-family: var(--display); font-size: 21px; font-weight: 700; background: var(--amber); color: var(--ink); box-shadow: 0 4px 0 #b8900a, 0 10px 24px rgba(0,0,0,.25); animation: fabPulse 2.6s ease-in-out 2; }
+  #listBtn { border-radius: 10px; background: var(--g700); box-shadow: 0 3px 0 var(--g900); }
+
+  /* kártyák: lapos, vékony kerettel; nem csúsznak be egyenként */
+  .pcard, .ocard, .kpi, .rcard, .del-stats div, .del-intro, .crow, .stat, .erow { border-radius: 10px; background: var(--card); box-shadow: none; border: 1.5px solid var(--line); animation: none; }
+  .del-intro, .rcard { box-shadow: 0 2px 0 var(--line); }
+  .pcard.selected, .ocard.ready { border-color: var(--g700); background: #f1f6ec; box-shadow: 0 3px 0 var(--g700); }
+  .ocard.delivered { border-color: #8aa6c8; background: #f1f4f8; box-shadow: none; }
+  .pimg, .cthumb { border-radius: 7px; background: var(--g100); }
+  .pcheck { background: var(--amber); color: var(--ink); border-radius: 4px; box-shadow: 1px 2px 0 rgba(0,0,0,.25); transform: scale(0) rotate(-12deg); }
+  .pcard.selected .pcheck { transform: scale(1) rotate(-6deg); }
+  .pname { font-size: 16px; font-weight: 600; line-height: 1.05; min-height: 34px; }
+  .pctrl button, .cstep .cc button { border-radius: 7px; }
+  .csec h3 { font-size: 21px; font-weight: 700; } .csec h3 em { border-radius: 4px; }
+  .crow .cmain b { font-size: 19px; font-weight: 600; } .ccheck { border-radius: 8px; border-color: #a9b3a5; }
+  .crow.done .ccheck { background: var(--g700); border-color: var(--g700); transform: scale(1.06); }
+  .ocard .on b { font-size: 22px; font-weight: 600; }
+  .ocard .pill, .debt-tag, .vgroup h4 .tag { border-radius: 4px; }
+  .ocard .oa button { border-radius: 8px; } .ocard .oa button.ok { background: var(--g700); box-shadow: 0 3px 0 var(--g900); }
+  .ocard.ready .oa button.ok { box-shadow: none; }
+  .del-stats b, .kpi b, .stat b { font-family: var(--display); font-size: 28px; font-weight: 700; line-height: 1.05; }
+  .del-stats b[style] { font-size: 18px !important; }
+
+  /* az árcédula: összegek sárga matricán – ez a kiemelt elem */
+  .otot b, .tot-sticker { display: inline-block; background: var(--amber); color: var(--ink); padding: 2px 12px 3px; border-radius: 4px; transform: rotate(-1.5deg); box-shadow: 2px 2px 0 rgba(0,0,0,.28); font-family: var(--display); font-size: 30px; font-weight: 700; }
+  .kpi:first-child { background: var(--amber); border-color: #d9aa00; box-shadow: 3px 3px 0 rgba(0,0,0,.2); } .kpi:first-child b { color: var(--ink); } .kpi:first-child small { color: #4a3f10; }
+  .kpi.neg b { color: var(--tomato); }
+  .irow .lt, .rtab td.r { font-family: var(--display); font-size: 19px; }
+
+  /* lapok, mezők */
+  #modal { backdrop-filter: none; background: rgba(8,28,20,.62); }
+  .modal-card, #panel { border-radius: 14px 14px 0 0; }
+  .modal-card h3, #panel h3, .oedit h3 { font-size: 26px; font-weight: 700; }
+  .oedit input[type=text], .oedit input[type=number], .oedit select, .oedit textarea, #panel input, #panel select, .modal-card textarea { border-radius: 8px; background: #fff; border: 1.5px solid #b9c1b0; }
+  .flabel, .rsec { text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--g800); font-weight: 700; }
+  input:focus-visible, select:focus-visible, button:focus-visible, textarea:focus-visible { outline: 3px solid var(--amber); outline-offset: 1px; }
+  .prog { border-radius: 4px; background: var(--g100); height: 12px; } .prog i { border-radius: 4px; background: var(--g700); }
+  .bar { border-radius: 3px; height: 10px; } .bar i { border-radius: 3px; background: var(--g700); }
+  .up { color: var(--tomato); }
+  #status { border-radius: 8px; backdrop-filter: none; background: var(--ink); font-size: 16px; }
+  .oedit .cstep .cc input { width: 38px; padding: 6px 0; text-align: center; } .cstep .cc { gap: 3px; } .cstep .cc button { width: 30px; } .crate-grid { gap: 6px; }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body data-screen="home">
 <!-- ====== v2.0 KEZDŐKÉPERNYŐ ====== -->
