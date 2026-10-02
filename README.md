@@ -68,3 +68,9 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Kiadott edényzet címenként: rekesz, láda, raklap.
 - Szállítólevél / számlamelléklet nyomtatása vagy PDF-be mentése (egy cím vagy az összes).
 - „Szállításra kész” jelölés, napi összesítő (rakodandó edényzet). Napi adat: Firebase `deliveryDay/current` + localStorage.
+
+## v2.2 – Szállítás és edényzet-egyenleg
+- Új „Szállítás” képernyő: szállításra kész címek listája, kiválasztod, melyiket viszed ki.
+- Cím részletek: átadandó tételek pontos mennyiséggel, összeg, kiadandó edényzet, eddigi tartozás, navigáció (Google Maps) a címre.
+- „Kiszállítva” → visszahozott rekesz/láda/raklap rögzítése; az új egyenleg (nettó szám címenként) elmentődik a címhez, és a következő szállításnál megjelenik (kártyán, szerkesztőben, szállítólevélen).
+- Egyenleg kézzel is megadható/javítható a cím szerkesztőben (kezdő tartozás); a kiszállítás visszavonható.
