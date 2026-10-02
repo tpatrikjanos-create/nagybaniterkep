@@ -97,6 +97,7 @@ const MARKET_RADIUS_DEG = 0.006;
 
 const LONG_PRESS_MS = 550;
 const NEARBY_VENDOR_LIMIT = 8;
+const CLEANUP_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 percenként ellenőrzi, elmúlt-e éjfél
 
 /* ====== ÁLLAPOT ====== */
 let map;
@@ -257,6 +258,8 @@ function initMap() {
   startLocationTracking();
   setupLongPress();
   refreshKnownItems();
+  cleanupTemporaryVendors();
+  setInterval(cleanupTemporaryVendors, CLEANUP_CHECK_INTERVAL_MS);
 }
 
 /* ====== HOSSZAN NYOMÁS A TÉRKÉPEN - ÚJ STAND BÁRHOL ====== */
@@ -349,8 +352,9 @@ function saveLocalVendors() {
 }
 
 /* ====== MARKEREK (kis feliratos pin + kiemelés, ha ma itt vásároltunk) ====== */
-function buildVendorIcon(name, color, selected, favorite) {
-  const label = escapeHtml((favorite ? '⭐ ' : '') + (name || 'Stand').slice(0, 22));
+function buildVendorIcon(name, color, selected, favorite, temporary) {
+  const prefix = (favorite ? '⭐' : '') + (temporary ? '⏳' : '');
+  const label = escapeHtml((prefix ? prefix + ' ' : '') + (name || 'Stand').slice(0, 22));
   const r = selected ? 10 : 8;
   const cx = 14, cy = 14;
   const textX = cx + r + 5;
@@ -391,11 +395,13 @@ function renderMarkers() {
     if (boughtHere) color = '#d81b60';
     if (isSelected) color = '#ffb300';
 
+    const isTemporary = v.permanent === false;
+    const titlePrefix = (v.favorite ? '⭐ ' : '') + (isTemporary ? '⏳ ' : '');
     const marker = new google.maps.Marker({
       position: { lat: v.lat, lng: v.lng },
       map: map,
-      title: (v.favorite ? '⭐ ' : '') + (v.name || 'Stand'),
-      icon: buildVendorIcon(v.name, color, isSelected, v.favorite),
+      title: titlePrefix + (v.name || 'Stand') + (isTemporary ? ' (ideiglenes, ma törlődik)' : ''),
+      icon: buildVendorIcon(v.name, color, isSelected, v.favorite, isTemporary),
       zIndex: isSelected ? 500 : (boughtHere ? 300 : (v.favorite ? 200 : 100)),
     });
     marker.addListener('click', () => openVendorPanel(id));
@@ -440,7 +446,8 @@ function getNearbyVendorsSorted(lat, lng, limit) {
 
 function createVendor(name, lat, lng) {
   const id = 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-  const vendor = { name, lat, lng };
+  // alapból ideiglenes: ha nem jelölöd fixnek, éjfélkor automatikusan törlődik
+  const vendor = { name, lat, lng, permanent: false, createdDate: todayStr() };
   vendors[id] = vendor;
   selectedStandId = id;
 
@@ -450,7 +457,31 @@ function createVendor(name, lat, lng) {
     saveLocalVendors();
     renderMarkers();
   }
-  showStatus('Új stand létrehozva: ' + name);
+  showStatus('Új stand létrehozva: ' + name + ' (ideiglenes — éjfélkor törlődik, ha nem jelölöd fixnek)');
+}
+
+/* ====== IDEIGLENES STANDOK AUTOMATIKUS TÖRLÉSE ÉJFÉLKOR ======
+   Csak azok a standok törlődnek, amik explicit permanent:false értékkel
+   lettek létrehozva (vagyis az ÚJ verzió óta felvettek), és nem a mai napon
+   jöttek létre. A régebbi (permanent mezőt nem tartalmazó) standok
+   biztonságból érintetlenek maradnak, amíg valaki explicit nem dönt róluk. */
+function cleanupTemporaryVendors() {
+  const today = todayStr();
+  let changedLocally = false;
+  Object.entries(vendors).forEach(([id, v]) => {
+    if (v.permanent === false && v.createdDate && v.createdDate !== today) {
+      if (firebaseReady) {
+        db.ref('vendors/' + id).remove();
+      } else {
+        delete vendors[id];
+        changedLocally = true;
+      }
+    }
+  });
+  if (!firebaseReady && changedLocally) {
+    saveLocalVendors();
+    renderMarkers();
+  }
 }
 
 /* ====== GPS GOMB ====== */
@@ -679,15 +710,21 @@ function openVendorPanel(id) {
     if (!rows) rows = '<tr><td colspan="3">Még nincs rögzített árazás ennél a standnál.</td></tr>';
 
     const isFav = !!v.favorite;
+    const isPermanent = v.permanent !== false; // undefined/true = fix, explicit false = ideiglenes
 
     content.innerHTML =
-      '<h3>' + (isFav ? '⭐ ' : '') + escapeHtml(v.name || 'Stand') + '</h3>' +
+      '<h3>' + (isFav ? '⭐ ' : '') + (isPermanent ? '' : '⏳ ') + escapeHtml(v.name || 'Stand') + '</h3>' +
+      (isPermanent
+        ? ''
+        : '<div style="background:#fff3cd;border:1px solid #ffe08a;border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:13px;color:#8a5a00;">⏳ Ideiglenes stand — ha ma nem jelölöd fixnek, éjfélkor automatikusan törlődik.</div>') +
       '<div class="row">' +
       '<input type="text" id="renameInput" value="' + escapeHtml(v.name || '') + '" placeholder="Stand neve">' +
       '<button id="renameBtn" style="background:#1b5e20;color:white;border:none;border-radius:6px;padding:8px 12px;">Átnevez</button>' +
       '</div>' +
-      '<button id="favBtn" style="width:100%;margin-bottom:10px;background:' + (isFav ? '#ffb300' : '#eee') + ';color:' + (isFav ? '#222' : '#555') + ';border:none;border-radius:6px;padding:10px;font-weight:bold;">' +
+      '<button id="favBtn" style="width:100%;margin-bottom:8px;background:' + (isFav ? '#ffb300' : '#eee') + ';color:' + (isFav ? '#222' : '#555') + ';border:none;border-radius:6px;padding:10px;font-weight:bold;">' +
       (isFav ? '⭐ Kedvenc — kattints a törléshez' : '☆ Megjelölés kedvencként') + '</button>' +
+      '<button id="permBtn" style="width:100%;margin-bottom:10px;background:' + (isPermanent ? '#1976d2' : '#ffb300') + ';color:' + (isPermanent ? 'white' : '#222') + ';border:none;border-radius:6px;padding:10px;font-weight:bold;">' +
+      (isPermanent ? '📌 Fix hely — kattints, hogy ideiglenes legyen' : '⏳ Ideiglenes — kattints a fixálásához') + '</button>' +
       '<textarea id="noteInput" placeholder="Jegyzet (pl. minőség, telefonszám, mikor van itt...)" style="width:100%;min-height:70px;padding:10px;border-radius:6px;border:1px solid #ccc;font-size:14px;font-family:inherit;">' + escapeHtml(v.note || '') + '</textarea>' +
       '<button id="noteSaveBtn" style="width:100%;margin:8px 0 14px;background:#1976d2;color:white;border:none;border-radius:6px;padding:10px;font-weight:bold;">Jegyzet mentése</button>' +
       '<table><tr><th>Dátum</th><th>Termék</th><th>Ár</th></tr>' + rows + '</table>';
@@ -715,6 +752,24 @@ function openVendorPanel(id) {
         renderMarkers();
       }
       showStatus(newFav ? "Kedvencekhez adva." : "Kedvencekből eltávolítva.");
+      openVendorPanel(id);
+    });
+
+    document.getElementById('permBtn').addEventListener('click', () => {
+      const makePermanent = !isPermanent;
+      vendors[id].permanent = makePermanent;
+      if (!makePermanent) {
+        // mai nappal jelöljük, hogy csak a következő éjfélkor törlődjön, ne azonnal
+        vendors[id].createdDate = todayStr();
+      }
+      if (firebaseReady) {
+        db.ref('vendors/' + id + '/permanent').set(makePermanent);
+        if (!makePermanent) db.ref('vendors/' + id + '/createdDate').set(todayStr());
+      } else {
+        saveLocalVendors();
+        renderMarkers();
+      }
+      showStatus(makePermanent ? "Fix hellyé jelölve — mostantól nem törlődik." : "Ideiglenesre állítva — ma éjfélkor törlődik.");
       openVendorPanel(id);
     });
 
