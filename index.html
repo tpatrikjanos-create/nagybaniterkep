@@ -278,6 +278,20 @@
   .bal-box { background: var(--g50); border: 1.5px solid var(--line); border-radius: 16px; padding: 10px 12px; margin-top: 10px; font-size: 14.5px; }
   .bal-box b { color: var(--g800); } .bal-box .big { font-size: 17px; font-weight: 800; }
   .navlink { display: inline-block; margin-top: 6px; color: var(--blue); font-weight: 700; text-decoration: none; font-size: 14.5px; }
+  /* ===== v2.3 RIPORTOK ===== */
+  body[data-screen=report] #repScreen { opacity: 1; pointer-events: auto; transform: none; }
+  #repScreen .ls-scroll { padding-bottom: 40px; }
+  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 4px; }
+  .kpi { background: #fff; border-radius: 18px; padding: 12px 14px; box-shadow: var(--shadow-s); animation: riseIn .45s var(--ease) both; }
+  .kpi b { display: block; font-size: 21px; color: var(--g800); letter-spacing: -.3px; } .kpi small { color: var(--muted); font-size: 12px; font-weight: 700; }
+  .kpi.neg b { color: #c62828; }
+  .rcard { background: #fff; border-radius: 20px; padding: 14px 14px 10px; margin: 12px 0; box-shadow: var(--shadow-s); animation: riseIn .5s var(--ease) both; }
+  .rcard h4 { margin: 0 0 10px; color: var(--g800); font-size: 16px; } .rcard .none { color: var(--muted); font-size: 14px; margin: 4px 0 8px; }
+  .brow { margin: 0 0 9px; } .brow .bl { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; } .brow .bl span:first-child { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .brow .bl span:last-child { color: var(--muted); white-space: nowrap; font-weight: 700; }
+  .bar { height: 8px; border-radius: 99px; background: var(--g100); margin-top: 4px; overflow: hidden; } .bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--g600), var(--g700)); transition: width .6s var(--ease); }
+  .ptab { width: 100%; border-collapse: collapse; font-size: 13.5px; } .ptab th { text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase; padding: 0 4px 6px; } .ptab td { padding: 7px 4px; border-top: 1px solid var(--line); } .ptab td.r, .ptab th.r { text-align: right; white-space: nowrap; }
+  .up { color: #c62828; font-weight: 800; } .dn { color: var(--g700); font-weight: 800; }
+  .rchips { display: flex; gap: 6px; margin-top: 8px; } .rchips button { border: none; background: rgba(255,255,255,.16); color: #fff; border-radius: 99px; padding: 7px 14px; font-weight: 700; font-size: 14px; cursor: pointer; } .rchips button.on { background: #fff; color: var(--g800); }
 </style>
 </head>
 <body data-screen="home">
@@ -295,6 +309,7 @@
     <button class="resume-card" id="resumeCard"><span style="font-size:30px">⏱️</span><span><b id="resumeTitle">Folyamatban lévő bevásárlás</b><small id="resumeSub"></small></span><span class="rc-arrow">›</span></button>
     <button class="big-card" id="goShop"><span class="bc-ico">🛒</span><span><b>Bevásárlás</b><small>Lista összeállítása, piac, térkép, checklist</small></span></button>
     <button class="big-card" id="goDeliver"><span class="bc-ico">🚚</span><span><b>Kiszállítás</b><small>Komissiózás címenként, szállítólevél</small></span></button>
+    <button class="big-card alt" id="goReport"><span class="bc-ico">📊</span><span><b>Riportok</b><small>Forgalom, árak, edényzet-egyenleg</small></span></button>
     <button class="big-card alt" id="goMap"><span class="bc-ico">🗺️</span><span><b>Csak térkép és árazás</b><small>Standok, árak felmérése lista nélkül</small></span></button>
   </div>
 </div>
@@ -341,6 +356,19 @@
     </div>
   </div>
   <div class="ls-scroll" id="rnScroll"></div>
+</div>
+
+<!-- ====== v2.3 RIPORTOK ====== -->
+<div id="repScreen" class="screen">
+  <div class="ls-head">
+    <div class="ls-top">
+      <button class="icon-btn" id="rpBack">← Vissza</button>
+      <h2>Riportok</h2>
+      <button class="icon-btn" id="rpCsv" title="Letöltés CSV-ben">⬇ CSV</button>
+    </div>
+    <div class="rchips" id="rpChips"><button data-d="7" class="on">7 nap</button><button data-d="30">30 nap</button><button data-d="90">90 nap</button><button data-d="0">Mind</button></div>
+  </div>
+  <div class="ls-scroll" id="rpScroll"></div>
 </div>
 
 <div id="modal"><div class="modal-card" id="modalCard"></div></div>
@@ -1558,6 +1586,7 @@ function showScreen(name) {
   if (name === 'list') { renderCatalog(); updateListBar(); }
   if (name === 'deliver') renderDelivery();
   if (name === 'run') renderRun();
+  if (name === 'report') renderReport();
   if (name === 'shop' || name === 'map') {
     if (typeof map !== 'undefined' && map && window.google) setTimeout(() => google.maps.event.trigger(map, 'resize'), 60);
     updateFab();
@@ -2277,6 +2306,98 @@ function renderDebtEditor(o) {
 
 $('rnBack').addEventListener('click', () => showScreen('deliver'));
 $('dlRun').addEventListener('click', () => showScreen('run'));
+
+/* ================= v2.3 NAPI ARCHÍVUM + RIPORTOK ================= */
+let ARCH = {};
+try { ARCH = JSON.parse(localStorage.getItem('piaci_archive') || '{}') || {}; } catch (e) { ARCH = {}; }
+let archTimer = null;
+function archiveToday() {
+  const d = todayStr();
+  const shop = (SESSION && SESSION.date === d) ? SESSION.items.filter(i => i.done && i.buy) : [];
+  const e = JSON.parse(JSON.stringify({ date: d, orders: (DAY && DAY.date === d) ? DAY.orders : [], shop, updated: Date.now() }));
+  if (!e.orders.length && !e.shop.length) return;
+  ARCH[d] = e;
+  try { localStorage.setItem('piaci_archive', JSON.stringify(ARCH)); } catch (x) { /* ignore */ }
+  clearTimeout(archTimer);
+  archTimer = setTimeout(() => { if (firebaseReady) db.ref('archive/' + d).set(ARCH[d]); }, 1500);
+}
+const _saveDay0 = saveDay; saveDay = function () { _saveDay0(); archiveToday(); };
+const _saveSession0 = saveSession; saveSession = function () { _saveSession0(); archiveToday(); };
+
+let repDays = 7;
+function loadRemoteArchive(cb) {
+  if (!firebaseReady) { cb(); return; }
+  db.ref('archive').once('value').then(snap => {
+    const v = snap.val() || {};
+    Object.keys(v).forEach(k => { if (!ARCH[k] || (v[k].updated || 0) > (ARCH[k].updated || 0)) ARCH[k] = v[k]; });
+    try { localStorage.setItem('piaci_archive', JSON.stringify(ARCH)); } catch (x) { /* ignore */ }
+    cb();
+  }).catch(cb);
+}
+function repEntries() {
+  const from = repDays ? new Date(Date.now() - repDays * 864e5).toISOString().slice(0, 10) : '0000';
+  return Object.keys(ARCH).filter(k => k >= from).sort().map(k => ARCH[k]);
+}
+function repLive(o) { return o.status === 'ready' || o.status === 'delivered'; }
+function barRows(rows, fmt) {
+  const max = Math.max.apply(null, rows.map(r => r.v)) || 1;
+  return rows.map(r => '<div class="brow"><div class="bl"><span>' + escapeHtml(r.l) + '</span><span>' + fmt(r) + '</span></div><div class="bar"><i style="width:' + Math.max(3, Math.round(r.v * 100 / max)) + '%"></i></div></div>').join('');
+}
+function renderReport() {
+  const es = repEntries(), wrap = $('rpScroll');
+  let rev = 0, cost = 0, nOrd = 0, nDel = 0; const byAddr = {}, byProd = {}, buys = {};
+  es.forEach(e => {
+    (e.orders || []).filter(repLive).forEach(o => {
+      nOrd++; if (o.status === 'delivered') nDel++;
+      const t = (o.items || []).reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.price) || 0), 0);
+      rev += t; const a = byAddr[o.name || '?'] = byAddr[o.name || '?'] || { v: 0, n: 0 }; a.v += t; a.n++;
+      (o.items || []).forEach(it => {
+        const k = it.pid + '|' + normUnit(it.unit), p = byProd[k] = byProd[k] || { l: it.name, unit: normUnit(it.unit), q: 0, v: 0 };
+        p.q += Number(it.qty) || 0; p.v += (Number(it.qty) || 0) * (Number(it.price) || 0);
+      });
+    });
+    (e.shop || []).forEach(it => {
+      const b = it.buy; if (!b) return;
+      cost += (Number(b.price) || 0) * (Number(b.qty) || 0);
+      const k = it.pid + '|' + normUnit(b.unit), x = buys[k] = buys[k] || { name: it.name, unit: normUnit(b.unit), list: [] };
+      x.list.push({ date: e.date, price: Number(b.price) || 0, qty: Number(b.qty) || 0, vendor: b.vendorName || '?' });
+    });
+  });
+  const margin = rev - cost;
+  let html = '<div class="kpis"><div class="kpi"><b>' + fmtFt(rev) + '</b><small>Eladási forgalom</small></div><div class="kpi"><b>' + fmtFt(cost) + '</b><small>Beszerzési költség</small></div>' +
+    '<div class="kpi' + (margin < 0 ? ' neg' : '') + '"><b>' + fmtFt(margin) + '</b><small>Becsült árrés</small></div><div class="kpi"><b>' + nDel + '/' + nOrd + '</b><small>Kiszállítva / kész szállítás</small></div></div>';
+  if (!es.length) html += '<div class="rcard"><div class="none">Még nincs mentett adat ebben az időszakban. A napi lista és a szállítások automatikusan archiválódnak.</div></div>';
+  const addrRows = Object.keys(byAddr).map(k => ({ l: k, v: byAddr[k].v, n: byAddr[k].n })).sort((a, b) => b.v - a.v).slice(0, 12);
+  html += '<div class="rcard"><h4>🏠 Forgalom címenként</h4>' + (addrRows.length ? barRows(addrRows, r => fmtFt(r.v) + ' · ' + r.n + ' szállítás') : '<div class="none">Nincs adat.</div>') + '</div>';
+  const prodRows = Object.keys(byProd).map(k => byProd[k]).sort((a, b) => b.v - a.v).slice(0, 12);
+  html += '<div class="rcard"><h4>🥕 Legtöbbet értékesített termékek</h4>' + (prodRows.length ? barRows(prodRows, r => fmtQty(r.q) + ' ' + r.unit + ' · ' + fmtFt(r.v)) : '<div class="none">Nincs adat.</div>') + '</div>';
+  const buyRows = Object.keys(buys).map(k => buys[k]).sort((a, b) => b.list.length - a.list.length).slice(0, 15).map(x => {
+    const L = x.list.slice().sort((a, b) => a.date.localeCompare(b.date)), tq = L.reduce((s, y) => s + y.qty, 0) || 1;
+    const avg = L.reduce((s, y) => s + y.price * y.qty, 0) / tq, min = L.reduce((m, y) => y.price < m.price ? y : m, L[0]);
+    const first = L[0].price, last = L[L.length - 1].price, ch = L.length > 1 && first ? Math.round((last - first) * 100 / first) : null;
+    return '<tr><td><b>' + escapeHtml(x.name) + '</b><br><small style="color:var(--muted)">' + L.length + '× · ' + escapeHtml(min.vendor) + '</small></td><td class="r">' + fmtFt(avg) + '<br><small style="color:var(--muted)">/' + escapeHtml(x.unit) + '</small></td><td class="r">' + fmtFt(min.price) + '</td><td class="r">' + (ch === null ? '—' : '<span class="' + (ch > 0 ? 'up' : ch < 0 ? 'dn' : '') + '">' + (ch > 0 ? '▲' : ch < 0 ? '▼' : '=') + ' ' + Math.abs(ch) + '%</span>') + '</td></tr>';
+  }).join('');
+  html += '<div class="rcard"><h4>🛒 Beszerzési árak</h4>' + (buyRows ? '<table class="ptab"><thead><tr><th>Termék</th><th class="r">Átlag</th><th class="r">Legolcsóbb</th><th class="r">Változás</th></tr></thead><tbody>' + buyRows + '</tbody></table>' : '<div class="none">Nincs adat.</div>') + '</div>';
+  const dRows = Object.keys(ADDRS).map(k => ADDRS[k]).filter(a => a && a.debt && balText(a.debt)).sort((a, b) => String(a.name).localeCompare(String(b.name), 'hu'));
+  html += '<div class="rcard"><h4>📦 Edényzet-egyenleg címenként</h4>' + (dRows.length ? '<table class="ptab"><tbody>' + dRows.map(a => '<tr><td><b>' + escapeHtml(a.name) + '</b></td><td class="r">' + escapeHtml(balText(a.debt)) + '</td></tr>').join('') + '</tbody></table>' : '<div class="none">Minden egyenleg rendezett.</div>') + '</div>';
+  wrap.innerHTML = html;
+}
+function exportCsv() {
+  const rows = [['Dátum', 'Cím', 'Termék', 'Mennyiség', 'Egység', 'Egységár', 'Összeg', 'Státusz']];
+  repEntries().forEach(e => (e.orders || []).filter(repLive).forEach(o => (o.items || []).forEach(it => rows.push([e.date, o.name, it.name, String(it.qty).replace('.', ','), normUnit(it.unit), it.price, Math.round((Number(it.qty) || 0) * (Number(it.price) || 0)), o.status === 'delivered' ? 'kiszállítva' : 'kész']))));
+  if (rows.length < 2) { showStatus('⚠️ Nincs exportálható adat.'); return; }
+  const csv = '﻿' + rows.map(r => r.map(c => '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"').join(';')).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'szallitasok_' + todayStr() + '.csv'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+$('goReport').addEventListener('click', () => { showScreen('report'); loadRemoteArchive(() => { if (document.body.dataset.screen === 'report') renderReport(); }); });
+$('rpBack').addEventListener('click', () => showScreen('home'));
+$('rpCsv').addEventListener('click', exportCsv);
+$('rpChips').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return; repDays = +b.dataset.d;
+  $('rpChips').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderReport();
+});
+archiveToday();
 
 showScreen('home');
 

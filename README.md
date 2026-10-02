@@ -74,3 +74,9 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Cím részletek: átadandó tételek pontos mennyiséggel, összeg, kiadandó edényzet, eddigi tartozás, navigáció (Google Maps) a címre.
 - „Kiszállítva” → visszahozott rekesz/láda/raklap rögzítése; az új egyenleg (nettó szám címenként) elmentődik a címhez, és a következő szállításnál megjelenik (kártyán, szerkesztőben, szállítólevélen).
 - Egyenleg kézzel is megadható/javítható a cím szerkesztőben (kezdő tartozás); a kiszállítás visszavonható.
+
+## v2.3 – Napi archívum és riportok
+- Minden nap automatikusan archiválódik (Firebase `archive/<dátum>` + localStorage): szállítások, tételek, árak, megvett termékek.
+- Új „Riportok” képernyő (7 / 30 / 90 nap / mind): eladási forgalom, beszerzési költség, becsült árrés, kiszállítások száma.
+- Forgalom címenként, legtöbbet értékesített termékek, beszerzési árak (átlag, legolcsóbb stand, árváltozás ▲▼), edényzet-egyenleg címenként.
+- CSV-export (Excelben megnyitható) az időszak szállításairól.
