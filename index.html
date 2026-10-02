@@ -1686,13 +1686,29 @@ const CAT_BY_KEY = {}; CATALOG_CATS.forEach(c => { CAT_BY_KEY[c.key] = c; });
 const PROD_BY_ID = {};
 CATALOG.forEach(p => { p.n = normText(p.name); p.s = (p.syn || []).map(normText); PROD_BY_ID[p.id] = p; });
 
+const EMOJI_RULES = [
+  [/^tisztitott-.*fokhagyma/, '🧄'], [/^tisztitott-.*hagyma/, '🧅'], [/^tisztitott-.*burgonya/, '🥔'], [/^tisztitott-(sargarepa|feherrepa)/, '🥕'], [/^tisztitott-zeller/, '🌿'], [/^tisztitott-/, '🥬'],
+  [/csemege-uborka|kovaszos-uborka/, '🥒'], [/pepperoni|almapaprika/, '🌶️'], [/-5-l$/, '🫙'],
+  [/sargarepa|feherrepa/, '🥕'], [/zellergumo|angolzeller|gyomber/, '🌿'], [/brokkoli|karfiol/, '🥦'], [/chili|hegyes/, '🌶️'], [/^cekla$/, '🍠'], [/piros-retek/, '🌱'],
+  [/edesburgonya/, '🍠'], [/burgonya/, '🥔'], [/fokhagyma/, '🧄'], [/porehagyma/, '🌱'], [/hagyma/, '🧅'],
+  [/kaposzta|salata|spenot|rukkola|karalabe|cekla-level/, '🥬'], [/paprika/, '🫑'], [/paradicsom/, '🍅'], [/padlizsan/, '🍆'], [/cukkini|uborka/, '🥒'], [/sutotok/, '🎃'],
+  [/gomba|csiperke/, '🍄'], [/^(bazsalikom|francia-petrezselyem|kakukkfu|kapor|koriander|menta|snidling|petrezselyem|rozmaring|zsalya)/, '🌿'],
+  [/afonya|szeder/, '🫐'], [/ribizli/, '🍒'], [/malna|eper/, '🍓'], [/alma-zold/, '🍏'], [/alma/, '🍎'], [/korte|birsalma/, '🍐'], [/gorogdinnye/, '🍉'], [/mezdinnye|sargadinnye/, '🍈'],
+  [/nektarin|sargabarack|szilva/, '🍑'], [/szolo/, '🍇'], [/ananasz/, '🍍'], [/avokado/, '🥑'], [/banan/, '🍌'], [/citrom|lime/, '🍋'], [/grapefruit|pomelo|narancs|mandarin/, '🍊'],
+  [/csillag|sarkany|physalis/, '⭐'], [/datolya|fuge/, '🌴'], [/granatalma/, '🍎'], [/mango/, '🥭'], [/kiwi/, '🥝'], [/dio/, '🥜'], [/lencse|bab|borso/, '🫘'], [/tojas/, '🥚'], [/csira/, '🌱']
+];
+function prodEmoji(p) {
+  if (!p) return '🛒';
+  for (let i = 0; i < EMOJI_RULES.length; i++) if (EMOJI_RULES[i][0].test(p.id)) return EMOJI_RULES[i][1];
+  return CAT_BY_KEY[p.cat] ? CAT_BY_KEY[p.cat].emoji : '🛒';
+}
 const UNIT_OPTIONS = [['kg', 'kg'], ['db', 'db'], ['csomó', 'csomó'], ['köteg', 'köteg'], ['doboz', 'doboz'], ['vödör', 'vödör'], ['csomag', 'csomag'], ['rekesz', 'rekesz'], ['lada', 'láda']];
 function toUnitKey(u) { return u === 'láda' ? 'lada' : u; }
 function fmtQty(q) { return String(Math.round(Number(q) * 100) / 100).replace('.', ','); }
 function fmtFt(n) { return Math.round(n).toLocaleString('hu-HU') + ' Ft'; }
 
 /* ---------- TERMÉKKÉPEK: élő betöltés a Wikipédiáról, eltárolva a készüléken ---------- */
-let imgCache = {};
+let imgCache = {}, imgOk = 0, imgFail = 0, imgWarned = false;
 try { imgCache = JSON.parse(localStorage.getItem('piaci_imgs') || '{}'); } catch (e) { imgCache = {}; }
 function saveImgCache() { try { localStorage.setItem('piaci_imgs', JSON.stringify(imgCache)); } catch (e) { /* tele a tár */ } }
 const imgQueue = []; let imgActive = 0; const imgPending = {};
@@ -1711,9 +1727,9 @@ function fetchWikiThumb(title) {
       .then(r => r.ok ? r.json() : null)
       .then(j => {
         const u = (j && j.type !== 'disambiguation' && j.thumbnail && j.thumbnail.source) || '';
-        imgCache[k] = u; saveImgCache(); resolve(u);
+        imgOk++; imgCache[k] = u; saveImgCache(); resolve(u);
       })
-      .catch(() => resolve('')));   // hálózati hiba: nem tároljuk el, később újrapróbáljuk
+      .catch(() => { imgFail++; if (imgFail >= 6 && !imgOk && !imgWarned) { imgWarned = true; showStatus('📷 A termékfotók nem tölthetők le ezen az eszközön — az ikonok maradnak.', 6000); } resolve(''); }));   // hálózati hiba: nem tároljuk el
     pumpImgQueue();
   }).finally(() => { delete imgPending[k]; });
   return imgPending[k];
@@ -1846,7 +1862,7 @@ let filterSel = false;
 function productCardHtml(p, idx) {
   const cat = CAT_BY_KEY[p.cat];
   return '<div class="pcard" data-pid="' + p.id + '" style="--i:' + Math.min(idx, 14) + '">' +
-    '<div class="pimg"><span class="pemo">' + cat.emoji + '</span><img data-pid="' + p.id + '" alt="" decoding="async"></div>' +
+    '<div class="pimg"><span class="pemo">' + prodEmoji(p) + '</span><img data-pid="' + p.id + '" alt="" decoding="async"></div>' +
     '<div class="pname">' + escapeHtml(p.name) + '</div><div class="punit">' + escapeHtml(p.unit) + '</div>' +
     '<div class="pctrl"></div><div class="pcheck">✓</div></div>';
 }
@@ -2017,7 +2033,7 @@ function openPhasePanel() {
 }
 function openPanel() { $('panel').classList.add('open'); $('overlay').classList.add('open'); }
 function thumbHtml(it) {
-  return '<div class="cthumb"><span>' + (CAT_BY_KEY[it.cat] ? CAT_BY_KEY[it.cat].emoji : '🛒') + '</span><img data-pid="' + it.pid + '" alt=""></div>';
+  return '<div class="cthumb"><span>' + prodEmoji(PROD_BY_ID[it.pid] || { id: '', cat: it.cat }) + '</span><img data-pid="' + it.pid + '" alt=""></div>';
 }
 function openChecklist() { renderChecklist(); openPanel(); }
 function renderChecklist() {
@@ -2375,7 +2391,7 @@ function openPicker(i) {
     let ps = CATALOG.filter(p => !q || p.n.includes(q) || p.s.some(x => x.includes(q)));
     ps.sort((a, b) => (inSess.has(b.id) ? 1 : 0) - (inSess.has(a.id) ? 1 : 0));
     ps = ps.slice(0, 80);
-    $('pkRes').innerHTML = ps.map(p => '<div class="pr" data-pid="' + p.id + '"><span style="font-size:22px">' + CAT_BY_KEY[p.cat].emoji + '</span><b>' + escapeHtml(p.name) + '</b>' +
+    $('pkRes').innerHTML = ps.map(p => '<div class="pr" data-pid="' + p.id + '"><span style="font-size:22px">' + prodEmoji(p) + '</span><b>' + escapeHtml(p.name) + '</b>' +
       (inSess.has(p.id) ? '<span class="tag">ma a listán</span>' : '<small>' + escapeHtml(p.unit) + '</small>') + '</div>').join('') || '<p style="color:var(--muted)">Nincs találat.</p>';
     $('pkRes').querySelectorAll('.pr').forEach(r => r.onclick = () => {
       const p = PROD_BY_ID[r.dataset.pid];

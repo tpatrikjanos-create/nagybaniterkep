@@ -91,3 +91,7 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Új megjelenés a Windows Vista/7 „Aero” stílusában: égkék háttér fénycsíkokkal, üveg (áttetsző, elmosódó) ablakkeretek fényes címsorral, világos tartalomterület.
 - Fényes, kétszínű „gloss” gombok (zöld = fő művelet, narancs = kiemelt, szürke = általános), üveggömb ikonok a kezdőképernyőn, Intéző-stílusú kijelölés, zöld üveg pipák és folyamatjelzők.
 - Betűtípus: Segoe UI (Windowson), máshol Open Sans. A korábbi árcédula-dizájn (v2.4) a git előzményekben megmaradt.
+
+## v2.6 – Termékikonok
+- Minden termék saját, a fájlba beépített ikont kap (🥕 🍅 🧅 🍄 🍎 …), hálózat nélkül is azonnal látszik; ez jelenik meg a lista, a checklist és a komissiózás termékválasztójában.
+- A Wikipédiáról töltött fotó továbbra is megpróbálkozik, és ha sikerül, felülírja az ikont. Ha az eszközön nem érhető el, egy üzenet jelzi, és az ikonok maradnak.
