@@ -49,3 +49,14 @@ Egyfájlos webapp a Budapesti Nagybani Piacon való eligazodáshoz és árkövet
 
 ## Technikai háttér
 Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realtime Database (offline esetén localStorage) · GitHub Pages
+
+## v1.8
+- Éjfélkor törlődő ideiglenes standok, fix stand jelölés, jegyzet, kedvencek.
+
+## v2.0 – Kezdőképernyő + bevásárlás
+- Kezdőképernyő („Mit csinálunk ma?”: Bevásárlás / Kiszállítás (hamarosan) / Csak térkép).
+- Terméklista-összeállító az Excel árlistából (134 termék, 14 kategória), ékezetfüggetlen kereső, mennyiség-léptetők, képek (Wikipedia, élőben töltve és gyorsítótárazva).
+- Email/rendelés szöveg automatikus felismerése („5kg fejeskáposzta, 10 kilo répa”).
+- Bevásárlás checklist a térképen: kipipáláskor stand (legközelebbi / új tű), ár, mennyiség, csere rekesz/láda.
+- Összesítő (stand szerint, összeg, hozandó edényzet) és összegyűjtő checklist.
+- Napi lista Firebase-ben (shopSession/current), localStorage fallback.

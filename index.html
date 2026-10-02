@@ -53,11 +53,211 @@
     background: #1b5e20; color: white; border: none; border-radius: 50%;
     width: 54px; height: 54px; font-size: 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); cursor: pointer;
   }
+
+  /* ====== v2.0 DIZÁJN ====== */
+  :root {
+    --g900:#0b3d20; --g800:#14532d; --g700:#1b6b3a; --g600:#2e8b4f; --g100:#e6f4ea; --g50:#f2f9f4;
+    --amber:#ffb300; --amber2:#ff8f00; --pink:#d81b60; --blue:#1a73e8;
+    --ink:#16221a; --muted:#6b7a70; --card:#fff; --bg:#f1f6f2; --line:#e3ebe5;
+    --shadow:0 6px 24px rgba(16,60,34,.12); --shadow-s:0 2px 8px rgba(16,60,34,.10);
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  body { color: var(--ink); -webkit-tap-highlight-color: transparent; }
+  button { font-family: inherit; }
+
+  /* meglévő elemek új stílusa */
+  #topbar { background: linear-gradient(135deg, var(--g900), var(--g700)); padding: 10px 12px; gap: 8px;
+    box-shadow: 0 8px 24px rgba(11,61,32,.35); border-radius: 0 0 20px 20px; }
+  #topbar input[type=text] { border-radius: 12px; padding: 11px 12px; box-shadow: inset 0 1px 3px rgba(0,0,0,.15); }
+  #topbar button { border-radius: 12px; padding: 11px 14px; transition: transform .15s var(--ease), filter .15s; }
+  #topbar button:active { transform: scale(.94); filter: brightness(.95); }
+  #topbar button.ghost { background: rgba(255,255,255,.16); color: #fff; padding: 11px 12px; }
+  #status { z-index: 80; top: 12px; border-radius: 14px; backdrop-filter: blur(8px); background: rgba(16,34,26,.88);
+    animation: toastIn .3s var(--ease); box-shadow: var(--shadow); }
+  #panel { border-radius: 26px 26px 0 0; padding: 22px 16px 20px; z-index: 50; box-shadow: 0 -10px 40px rgba(0,0,0,.28);
+    transition: transform .38s var(--ease); }
+  #panel::before { content: ''; position: absolute; top: 8px; left: 50%; width: 44px; height: 5px; margin-left: -22px; border-radius: 3px; background: #d5ddd7; }
+  #panel h3 { color: var(--g800); }
+  #panel input, #panel select { border-radius: 12px; border: 1.5px solid var(--line); background: #fbfdfb; }
+  #panel input:focus, #panel select:focus { outline: none; border-color: var(--g600); box-shadow: 0 0 0 3px rgba(46,139,79,.18); }
+  #overlay { z-index: 45; backdrop-filter: blur(2px); animation: fadeIn .25s; }
+  #listBtn { z-index: 30; background: linear-gradient(135deg, var(--g800), var(--g600)); box-shadow: var(--shadow); transition: transform .2s var(--ease); }
+  #listBtn:active { transform: scale(.9); }
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(-12px) } to { opacity: 1; transform: none } }
+
+  /* képernyők */
+  body:not([data-screen=shop]):not([data-screen=map]) #topbar,
+  body:not([data-screen=shop]):not([data-screen=map]) #listBtn,
+  body:not([data-screen=shop]):not([data-screen=map]) #shopFab { visibility: hidden; }
+  body[data-screen=map] #shopFab { display: none; }
+  .screen { position: fixed; inset: 0; z-index: 40; background: var(--bg); display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none; transform: translateY(18px) scale(.985); transition: opacity .35s var(--ease), transform .45s var(--ease); }
+  body[data-screen=home] #homeScreen, body[data-screen=list] #listScreen { opacity: 1; pointer-events: auto; transform: none; }
+
+  /* kezdőképernyő */
+  #homeScreen { background: radial-gradient(120% 70% at 50% -10%, #1f7a43 0%, var(--g900) 55%, #07281a 100%); color: #fff; overflow: hidden; }
+  .home-emojis { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .home-emojis span { position: absolute; font-size: 38px; opacity: .13; animation: floaty 9s ease-in-out infinite; }
+  @keyframes floaty { 0%,100% { transform: translateY(0) rotate(-6deg) } 50% { transform: translateY(-26px) rotate(8deg) } }
+  .home-inner { position: relative; flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 28px 20px 36px; max-width: 520px; width: 100%; margin: 0 auto; gap: 14px; }
+  .home-brand { font-size: 13px; letter-spacing: 2.5px; text-transform: uppercase; opacity: .75; font-weight: 700; animation: riseIn .6s var(--ease) both; }
+  .home-title { font-size: 34px; line-height: 1.1; font-weight: 800; margin: 2px 0 14px; animation: riseIn .6s .08s var(--ease) both; }
+  .home-title em { font-style: normal; color: var(--amber); }
+  .big-card { width: 100%; border: none; border-radius: 22px; padding: 20px 20px; display: flex; align-items: center; gap: 16px; text-align: left; cursor: pointer;
+    background: rgba(255,255,255,.96); color: var(--ink); box-shadow: 0 14px 34px rgba(0,0,0,.28);
+    transition: transform .25s var(--ease), box-shadow .25s; animation: riseIn .6s var(--ease) both; }
+  .big-card:nth-of-type(1) { animation-delay: .16s } .big-card:nth-of-type(2) { animation-delay: .24s } .big-card:nth-of-type(3) { animation-delay: .32s }
+  .big-card:active { transform: scale(.97); }
+  .big-card .bc-ico { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: 30px; background: linear-gradient(135deg, var(--g100), #cfe9d6); flex: none; }
+  .big-card b { display: block; font-size: 20px; } .big-card small { color: var(--muted); font-size: 13.5px; }
+  .big-card.alt { background: rgba(255,255,255,.12); color: #fff; box-shadow: none; border: 1.5px solid rgba(255,255,255,.25); }
+  .big-card.alt .bc-ico { background: rgba(255,255,255,.14); } .big-card.alt small { color: rgba(255,255,255,.7); }
+  .big-card.disabled { opacity: .55; pointer-events: none; }
+  .resume-card { background: linear-gradient(135deg, var(--amber), var(--amber2)); color: #2a1c00; border-radius: 22px; padding: 16px 18px; display: none; align-items: center; gap: 14px;
+    cursor: pointer; box-shadow: 0 12px 30px rgba(255,143,0,.35); animation: riseIn .6s .1s var(--ease) both; border: none; width: 100%; text-align: left; }
+  .resume-card.show { display: flex; } .resume-card b { display: block; font-size: 16px; } .resume-card small { opacity: .8; }
+  .resume-card .rc-arrow { margin-left: auto; font-size: 24px; font-weight: 800; }
+  @keyframes riseIn { from { opacity: 0; transform: translateY(26px) } to { opacity: 1; transform: none } }
+
+  /* lista-összeállító */
+  #listScreen { overflow: hidden; }
+  .ls-head { background: linear-gradient(135deg, var(--g900), var(--g700)); color: #fff; padding: 12px 14px 12px; border-radius: 0 0 24px 24px; box-shadow: 0 10px 28px rgba(11,61,32,.3); z-index: 3; flex: none; }
+  .ls-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .ls-top h2 { margin: 0; font-size: 19px; flex: 1; }
+  .icon-btn { border: none; background: rgba(255,255,255,.16); color: #fff; border-radius: 12px; padding: 9px 13px; font-size: 15px; font-weight: 700; cursor: pointer; transition: transform .15s var(--ease); }
+  .icon-btn:active { transform: scale(.92); }
+  .ls-search { display: flex; gap: 8px; }
+  .ls-search input { flex: 1; border: none; border-radius: 14px; padding: 12px 14px; font-size: 16px; min-width: 0; box-shadow: inset 0 1px 3px rgba(0,0,0,.15); }
+  .ls-search input:focus { outline: 3px solid rgba(255,179,0,.6); }
+  .ls-search button { border: none; border-radius: 14px; padding: 0 14px; background: var(--amber); color: #2a1c00; font-weight: 800; cursor: pointer; font-size: 14px; white-space: nowrap; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 2px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; border: none; border-radius: 999px; padding: 7px 13px; background: rgba(255,255,255,.14); color: #fff; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background .2s, transform .15s; }
+  .chip:active { transform: scale(.94); } .chip.on { background: #fff; color: var(--g800); }
+  .ls-scroll { flex: 1; overflow-y: auto; padding: 6px 12px 110px; -webkit-overflow-scrolling: touch; }
+  .csec { scroll-margin-top: 8px; margin-top: 14px; }
+  .csec h3 { margin: 0 0 10px 4px; font-size: 16px; color: var(--g800); display: flex; align-items: center; gap: 8px; }
+  .csec h3 span { font-size: 20px; } .csec h3 em { font-style: normal; font-size: 12px; color: var(--muted); background: #e4ece6; padding: 2px 8px; border-radius: 99px; margin-left: auto; }
+  .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+  .pcard { position: relative; background: var(--card); border-radius: 18px; padding: 8px 8px 10px; box-shadow: var(--shadow-s); cursor: pointer; border: 2px solid transparent;
+    transition: transform .25s var(--ease), border-color .2s, box-shadow .25s; animation: cardIn .45s var(--ease) both; animation-delay: calc(var(--i) * 30ms); user-select: none; }
+  .pcard:active { transform: scale(.96); }
+  .pcard.selected { border-color: var(--g600); box-shadow: 0 8px 22px rgba(46,139,79,.28); background: var(--g50); }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(14px) scale(.96) } to { opacity: 1; transform: none } }
+  .pimg { position: relative; width: 100%; aspect-ratio: 1; border-radius: 13px; overflow: hidden; background: linear-gradient(135deg, #eef5f0, #dfeee4); display: grid; place-items: center; }
+  .pimg .pemo { font-size: 38px; opacity: .85; }
+  .pimg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .5s; }
+  .pimg img.loaded { opacity: 1; }
+  .pname { font-weight: 700; font-size: 13px; margin-top: 7px; line-height: 1.2; min-height: 31px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .punit { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .pcheck { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%; background: var(--g600); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 15px;
+    transform: scale(0); transition: transform .35s cubic-bezier(.34,1.8,.5,1); box-shadow: 0 3px 8px rgba(0,0,0,.25); }
+  .pcard.selected .pcheck { transform: scale(1); }
+  .pctrl { display: none; align-items: center; gap: 3px; margin-top: 7px; }
+  .pcard.selected .pctrl { display: flex; animation: fadeIn .25s; }
+  .pctrl button { width: 28px; height: 30px; border: none; border-radius: 9px; background: var(--g100); color: var(--g800); font-size: 18px; font-weight: 800; cursor: pointer; flex: none; }
+  .pctrl button:active { transform: scale(.88); }
+  .pctrl input { width: 100%; min-width: 0; text-align: center; border: 1.5px solid var(--line); border-radius: 9px; padding: 5px 2px; font-size: 14px; font-weight: 700; background: #fff; }
+  .empty { text-align: center; color: var(--muted); padding: 50px 20px; }
+  .ls-bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--bg) 60%, rgba(241,246,242,0)); z-index: 4; }
+  .go-btn { width: 100%; border: none; border-radius: 18px; padding: 16px; font-size: 17px; font-weight: 800; color: #fff; cursor: pointer;
+    background: linear-gradient(135deg, var(--g700), var(--g600)); box-shadow: 0 12px 28px rgba(27,107,58,.4); transition: transform .2s var(--ease), opacity .2s; }
+  .go-btn:active { transform: scale(.97); } .go-btn:disabled { opacity: .45; box-shadow: none; }
+  .go-btn.amber { background: linear-gradient(135deg, var(--amber), var(--amber2)); color: #2a1c00; box-shadow: 0 12px 28px rgba(255,143,0,.35); }
+  .go-btn.ghost2 { background: #fff; color: var(--g800); box-shadow: var(--shadow-s); border: 1.5px solid var(--line); }
+
+  /* felugró ablak (email) */
+  #modal { position: fixed; inset: 0; z-index: 70; background: rgba(8,24,15,.55); backdrop-filter: blur(4px); display: none; align-items: flex-end; justify-content: center; }
+  #modal.open { display: flex; animation: fadeIn .25s; }
+  .modal-card { background: #fff; width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; border-radius: 26px 26px 0 0; padding: 20px 16px 22px; animation: sheetUp .45s var(--ease); }
+  @keyframes sheetUp { from { transform: translateY(100%) } to { transform: none } }
+  .modal-card h3 { margin: 0 0 4px; color: var(--g800); font-size: 19px; } .modal-card p.sub { margin: 0 0 12px; color: var(--muted); font-size: 13.5px; }
+  .modal-card textarea { width: 100%; min-height: 130px; border: 1.5px solid var(--line); border-radius: 14px; padding: 12px; font: inherit; font-size: 15px; resize: vertical; background: #fbfdfb; }
+  .modal-card textarea:focus { outline: none; border-color: var(--g600); box-shadow: 0 0 0 3px rgba(46,139,79,.18); }
+  .mrow { display: flex; gap: 8px; margin-top: 12px; } .mrow > * { flex: 1; }
+  .erow { background: var(--g50); border: 1.5px solid var(--line); border-radius: 14px; padding: 10px; margin-top: 10px; animation: cardIn .35s var(--ease) both; }
+  .erow.warn { background: #fff7e0; border-color: #ffd770; }
+  .eraw { font-size: 12.5px; color: var(--muted); margin-bottom: 6px; } .eraw b { color: var(--ink); }
+  .efields { display: flex; gap: 6px; align-items: center; }
+  .efields select, .efields input { padding: 9px 8px; border-radius: 10px; border: 1.5px solid var(--line); font-size: 14px; background: #fff; min-width: 0; }
+  .efields .esel { flex: 1; } .efields .eqty { width: 68px; } .efields .eunit { width: 84px; }
+  .efields .edel { border: none; background: #fde8e8; color: #c62828; border-radius: 10px; width: 36px; height: 38px; font-weight: 800; cursor: pointer; }
+
+  /* bevásárlás: lebegő gomb + checklist */
+  #shopFab { position: absolute; left: 14px; bottom: 18px; z-index: 30; border: none; border-radius: 999px; padding: 15px 20px; font-size: 16px; font-weight: 800; color: #fff; cursor: pointer;
+    background: linear-gradient(135deg, var(--amber2), var(--amber)); color: #2a1c00; box-shadow: 0 10px 28px rgba(255,143,0,.45); animation: fabPulse 2.6s ease-in-out infinite; transition: transform .2s var(--ease); display: none; }
+  #shopFab.show { display: block; } #shopFab:active { transform: scale(.93); }
+  @keyframes fabPulse { 0%,100% { box-shadow: 0 10px 28px rgba(255,143,0,.45), 0 0 0 0 rgba(255,179,0,.5) } 50% { box-shadow: 0 10px 28px rgba(255,143,0,.45), 0 0 0 12px rgba(255,179,0,0) } }
+  .prog { height: 9px; background: #e4ece6; border-radius: 99px; overflow: hidden; margin: 6px 0 12px; }
+  .prog i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--g600), #7bd389); border-radius: 99px; transition: width .6s var(--ease); }
+  .crow { display: flex; align-items: center; gap: 12px; padding: 9px 8px; border-radius: 16px; margin-bottom: 7px; background: #fff; border: 1.5px solid var(--line); cursor: pointer; transition: transform .2s var(--ease), background .3s; animation: cardIn .35s var(--ease) both; }
+  .crow:active { transform: scale(.98); } .crow.done { background: var(--g50); border-color: #bfe0c9; }
+  .cthumb { position: relative; width: 52px; height: 52px; border-radius: 13px; overflow: hidden; background: linear-gradient(135deg, #eef5f0, #dfeee4); display: grid; place-items: center; flex: none; font-size: 26px; }
+  .cthumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .5s; } .cthumb img.loaded { opacity: 1; }
+  .cmain { flex: 1; min-width: 0; } .cmain b { display: block; font-size: 15.5px; } .cmain small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 1px; }
+  .cmain .cdone { color: var(--g700); font-weight: 600; }
+  .ccheck { width: 32px; height: 32px; border-radius: 50%; border: 2.5px solid #c9d6cc; display: grid; place-items: center; color: transparent; font-weight: 900; flex: none; transition: all .35s cubic-bezier(.34,1.8,.5,1); }
+  .crow.done .ccheck { background: var(--g600); border-color: var(--g600); color: #fff; transform: scale(1.08); }
+  .vgroup { margin-top: 14px; } .vgroup h4 { margin: 0 0 6px; font-size: 15px; color: var(--g800); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .vgroup h4 .tag { font-size: 12px; font-weight: 700; background: #fff3cd; color: #8a5a00; padding: 3px 9px; border-radius: 99px; }
+  .sumtable { width: 100%; border-collapse: collapse; font-size: 13.5px; } .sumtable td, .sumtable th { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: left; } .sumtable td:last-child, .sumtable th:last-child { text-align: right; }
+  .stat-row { display: flex; gap: 8px; margin: 10px 0; } .stat { flex: 1; background: var(--g50); border: 1.5px solid #cfe5d5; border-radius: 16px; padding: 12px; text-align: center; animation: cardIn .45s var(--ease) both; }
+  .stat b { display: block; font-size: 22px; color: var(--g800); } .stat small { color: var(--muted); font-size: 12px; }
+  .stat.warn { background: #fff7e0; border-color: #ffd770; } .stat.warn b { color: #8a5a00; }
+  .vopt { display: flex; align-items: center; gap: 10px; padding: 10px 6px; border-bottom: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+  .vopt input { width: 20px; height: 20px; accent-color: var(--g600); flex: none; }
+  .vopt small { color: var(--muted); }
+  .flabel { display: block; font-size: 12.5px; font-weight: 700; color: var(--muted); margin: 12px 0 4px; text-transform: uppercase; letter-spacing: .5px; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
 </style>
 </head>
-<body>
+<body data-screen="home">
+<!-- ====== v2.0 KEZDŐKÉPERNYŐ ====== -->
+<div id="homeScreen" class="screen">
+  <div class="home-emojis" aria-hidden="true">
+    <span style="left:6%;top:9%;animation-delay:0s">🥕</span><span style="left:78%;top:6%;animation-delay:1.2s">🍅</span>
+    <span style="left:40%;top:3%;animation-delay:2.1s">🥬</span><span style="left:88%;top:38%;animation-delay:.6s">🧅</span>
+    <span style="left:4%;top:44%;animation-delay:3s">🍎</span><span style="left:70%;top:82%;animation-delay:1.8s">🥒</span>
+    <span style="left:14%;top:84%;animation-delay:2.6s">🍄</span><span style="left:50%;top:90%;animation-delay:.9s">🫑</span>
+  </div>
+  <div class="home-inner">
+    <div class="home-brand">Nagybani Gastro</div>
+    <div class="home-title">Mit csinálunk<br><em>ma?</em></div>
+    <button class="resume-card" id="resumeCard"><span style="font-size:30px">⏱️</span><span><b id="resumeTitle">Folyamatban lévő bevásárlás</b><small id="resumeSub"></small></span><span class="rc-arrow">›</span></button>
+    <button class="big-card" id="goShop"><span class="bc-ico">🛒</span><span><b>Bevásárlás</b><small>Lista összeállítása, piac, térkép, checklist</small></span></button>
+    <button class="big-card disabled" id="goDeliver"><span class="bc-ico">🚚</span><span><b>Kiszállítás</b><small>Komissiózás, szállítás — hamarosan</small></span></button>
+    <button class="big-card alt" id="goMap"><span class="bc-ico">🗺️</span><span><b>Csak térkép és árazás</b><small>Standok, árak felmérése lista nélkül</small></span></button>
+  </div>
+</div>
+
+<!-- ====== v2.0 BEVÁSÁRLÓLISTA-ÖSSZEÁLLÍTÓ ====== -->
+<div id="listScreen" class="screen">
+  <div class="ls-head">
+    <div class="ls-top">
+      <button class="icon-btn" id="lsBack">← Vissza</button>
+      <h2>Mit kell ma venni?</h2>
+      <button class="icon-btn" id="lsSelOnly" title="Csak a kiválasztottak">☑ <span id="lsSelCount">0</span></button>
+    </div>
+    <div class="ls-search">
+      <input type="search" id="lsSearch" placeholder="Keresés (ékezet nélkül is: repa, kaposzta…)" autocomplete="off">
+      <button id="lsEmail">📧 Lista beillesztése</button>
+    </div>
+    <div class="chips" id="lsChips"></div>
+  </div>
+  <div class="ls-scroll" id="lsScroll"><div id="catalogWrap"></div></div>
+  <div class="ls-bar"><button class="go-btn" id="lsGo" disabled>Indulhat a bevásárlás →</button></div>
+</div>
+
+<div id="modal"><div class="modal-card" id="modalCard"></div></div>
+
+<button id="shopFab"></button>
+
+
 
 <div id="topbar">
+  <button id="homeBtn" class="ghost" title="Kezdőlap">🏠</button>
   <input type="text" id="quickEntry" placeholder="pl. uborka 400" autocomplete="off">
   <button id="micBtn" class="gps" title="Hangbevitel">🎤</button>
   <button id="saveBtn">Mentés</button>
@@ -249,6 +449,7 @@ function initMap() {
   });
 
   initFirebase();
+  listenSession();
 
   if (!firebaseReady) {
     loadLocalVendors();
@@ -458,6 +659,7 @@ function createVendor(name, lat, lng) {
     renderMarkers();
   }
   showStatus('Új stand létrehozva: ' + name + ' (ideiglenes — éjfélkor törlődik, ha nem jelölöd fixnek)');
+  return id;
 }
 
 /* ====== IDEIGLENES STANDOK AUTOMATIKUS TÖRLÉSE ÉJFÉLKOR ======
@@ -663,7 +865,7 @@ function saveArazas(vendorId, item, price, unit, date) {
   showUndoToast('Árazás mentve: ' + item + ' — ' + price + ' Ft/' + unitLabel(entry.unit) + ' (' + entry.vendorName + ')');
 }
 
-function savePurchase(vendorId, item, price, quantity, unit, crateType, crateQty, date) {
+function savePurchase(vendorId, item, price, quantity, unit, crateType, crateQty, date, silent) {
   const entry = {
     vendorId,
     vendorName: (vendors[vendorId] && vendors[vendorId].name) || '',
@@ -676,19 +878,23 @@ function savePurchase(vendorId, item, price, quantity, unit, crateType, crateQty
     collected: false,
     timestamp: Date.now(),
   };
+  let purchaseId;
   if (firebaseReady) {
     const ref = db.ref('purchases').push(entry);
-    lastSaved = { type: 'vasarlas', firebaseKey: ref.key };
+    if (!silent) lastSaved = { type: 'vasarlas', firebaseKey: ref.key };
+    purchaseId = ref.key;
   } else {
     const purchases = JSON.parse(localStorage.getItem('piaci_purchases') || '[]');
     purchases.push(entry);
     localStorage.setItem('piaci_purchases', JSON.stringify(purchases));
-    lastSaved = { type: 'vasarlas', localIndex: purchases.length - 1 };
+    if (!silent) lastSaved = { type: 'vasarlas', localIndex: purchases.length - 1 };
+    purchaseId = 'local_' + (purchases.length - 1);
     renderMarkers();
   }
   knownItems.add(item.trim().toLowerCase());
   const crateNote = entry.crateType ? (' + ' + entry.crateQty + ' ' + unitLabel(entry.crateType) + ' csere') : '';
-  showUndoToast('Vásárlás mentve: ' + item + ' — ' + price + ' Ft/' + unitLabel(entry.unit) + crateNote + ' (' + entry.vendorName + ')');
+  if (!silent) showUndoToast('Vásárlás mentve: ' + item + ' — ' + price + ' Ft/' + unitLabel(entry.unit) + crateNote + ' (' + entry.vendorName + ')');
+  return purchaseId;
 }
 
 /* ====== STAND PANEL ====== */
@@ -999,6 +1205,632 @@ function setupVoiceInput() {
   });
 }
 setupVoiceInput();
+const CATALOG_CATS = [{"key": "zoldseg", "name": "Zöldségek, gyökeresek", "emoji": "🥕"}, {"key": "burgonya", "name": "Burgonya, hagyma", "emoji": "🧅"}, {"key": "kaposzta", "name": "Káposzta, saláta", "emoji": "🥬"}, {"key": "paprika", "name": "Paprika, paradicsom, padlizsán", "emoji": "🫑"}, {"key": "uborka", "name": "Uborka, cukkini, tök", "emoji": "🥒"}, {"key": "gomba", "name": "Gomba", "emoji": "🍄"}, {"key": "fuszer", "name": "Fűszernövények", "emoji": "🌿"}, {"key": "gyumolcs", "name": "Gyümölcsök", "emoji": "🍎"}, {"key": "egzotikus", "name": "Egzotikus gyümölcsök", "emoji": "🍍"}, {"key": "szaraz", "name": "Száraz áru", "emoji": "🌰"}, {"key": "savanyu", "name": "Savanyúságok", "emoji": "🫙"}, {"key": "tojas", "name": "Tojás", "emoji": "🥚"}, {"key": "csira", "name": "Csíra", "emoji": "🌱"}, {"key": "konyhakesz", "name": "Konyhakész, tisztított", "emoji": "🔪"}];
+const CATALOG = [
+  {"id":"sargarepa","name":"Sárgarépa","cat":"zoldseg","unit":"kg","price":180,"wiki":["Carrot"],"syn":["repa","sargarepa","murok"]},
+  {"id":"feherrepa","name":"Fehérrépa","cat":"zoldseg","unit":"kg","price":400,"wiki":["Parsnip"],"syn":["petrezselyemgyoker","petrezselyem gyoker","gyokerpetrezselyem"]},
+  {"id":"zellergumo","name":"Zellergumó","cat":"zoldseg","unit":"kg","price":180,"wiki":["Celeriac"],"syn":["zeller","zellergumo","gumozeller"]},
+  {"id":"brokkoli","name":"Brokkoli","cat":"zoldseg","unit":"kg","price":500,"wiki":["Broccoli"],"syn":[]},
+  {"id":"chili","name":"Chili","cat":"zoldseg","unit":"kg","price":5900,"wiki":["Chili pepper"],"syn":["csili"]},
+  {"id":"cekla","name":"Cékla","cat":"zoldseg","unit":"kg","price":200,"wiki":["Beetroot"],"syn":[]},
+  {"id":"karfiol","name":"Karfiol","cat":"zoldseg","unit":"kg","price":300,"wiki":["Cauliflower"],"syn":[]},
+  {"id":"karalabe","name":"Karalábé","cat":"zoldseg","unit":"db","price":195,"wiki":["Kohlrabi"],"syn":[]},
+  {"id":"piros-retek","name":"Piros retek","cat":"zoldseg","unit":"csomó","price":150,"wiki":["Radish"],"syn":["retek","honapos retek"]},
+  {"id":"angolzeller","name":"Angolzeller","cat":"zoldseg","unit":"csomag","price":310,"wiki":["Celery"],"syn":["szarzeller","angol zeller"]},
+  {"id":"gyomber","name":"Gyömbér","cat":"zoldseg","unit":"kg","price":990,"wiki":["Ginger"],"syn":[]},
+  {"id":"burgonya-francia","name":"Burgonya Francia","cat":"burgonya","unit":"kg","price":169,"wiki":["Potato"],"syn":["francia krumpli","francia burgonya"]},
+  {"id":"parazs-burgonya","name":"Parázs burgonya","cat":"burgonya","unit":"kg","price":135,"wiki":["Potato"],"syn":["parazs krumpli"]},
+  {"id":"burgonya-sarga","name":"Burgonya (sárga)","cat":"burgonya","unit":"kg","price":220,"wiki":["Potato"],"syn":["burgonya","krumpli","sarga burgonya"]},
+  {"id":"edesburgonya","name":"Édesburgonya","cat":"burgonya","unit":"kg","price":530,"wiki":["Sweet potato"],"syn":["batata","edes krumpli"]},
+  {"id":"fokhagyma","name":"Fokhagyma","cat":"burgonya","unit":"kg","price":1200,"wiki":["Garlic"],"syn":[]},
+  {"id":"lilahagyma","name":"Lilahagyma","cat":"burgonya","unit":"kg","price":240,"wiki":["Red onion"],"syn":["lila hagyma"]},
+  {"id":"porehagyma","name":"Póréhagyma","cat":"burgonya","unit":"db","price":310,"wiki":["Leek"],"syn":["pore","porehagyma"]},
+  {"id":"ujhagyma","name":"Újhagyma","cat":"burgonya","unit":"csomó","price":160,"wiki":["Scallion"],"syn":["zoldhagyma","zold hagyma","uj hagyma"]},
+  {"id":"voroshagyma","name":"Vöröshagyma","cat":"burgonya","unit":"kg","price":140,"wiki":["Onion"],"syn":["hagyma","voros hagyma"]},
+  {"id":"feher-kaposzta","name":"Fehér káposzta","cat":"kaposzta","unit":"kg","price":190,"wiki":["Cabbage"],"syn":["kaposzta","fejeskaposzta","fejes kaposzta","feherkaposzta"]},
+  {"id":"kelkaposzta","name":"Kelkáposzta","cat":"kaposzta","unit":"kg","price":310,"wiki":["Savoy cabbage"],"syn":["kel"]},
+  {"id":"voros-kaposzta","name":"Vörös káposzta","cat":"kaposzta","unit":"kg","price":210,"wiki":["Red cabbage"],"syn":["lilakaposzta","lila kaposzta","voroskaposzta"]},
+  {"id":"cekla-level","name":"Cékla levél","cat":"kaposzta","unit":"db","price":310,"wiki":["Chard"],"syn":[]},
+  {"id":"fejessalata","name":"Fejessaláta","cat":"kaposzta","unit":"db","price":250,"wiki":["Lettuce"],"syn":["salata","fejes salata"]},
+  {"id":"madarsalata","name":"Madársaláta","cat":"kaposzta","unit":"db","price":350,"wiki":["Valerianella locusta"],"syn":[]},
+  {"id":"jegsalata","name":"Jégsaláta","cat":"kaposzta","unit":"db","price":395,"wiki":["Iceberg lettuce"],"syn":["jeg salata","iceberg"]},
+  {"id":"lolo-salata-piros-zold","name":"Lolo saláta – piros, zöld","cat":"kaposzta","unit":"db","price":330,"wiki":["Lollo rosso","Lettuce"],"syn":[]},
+  {"id":"salata-mix","name":"Saláta mix","cat":"kaposzta","unit":"db","price":280,"wiki":["Mesclun","Lettuce"],"syn":[]},
+  {"id":"radichio-salata","name":"Radichio saláta","cat":"kaposzta","unit":"kg","price":1590,"wiki":["Radicchio"],"syn":[]},
+  {"id":"romai-salata","name":"Római saláta","cat":"kaposzta","unit":"db","price":410,"wiki":["Romaine lettuce"],"syn":[]},
+  {"id":"bebispenot","name":"Bébispenót","cat":"kaposzta","unit":"db","price":220,"wiki":["Spinach"],"syn":["spenot","bebi spenot"]},
+  {"id":"rukkola-salata","name":"Rukkola saláta","cat":"kaposzta","unit":"db","price":220,"wiki":["Eruca vesicaria"],"syn":["rukkola","rucola"]},
+  {"id":"frize-salata","name":"Frize saláta","cat":"kaposzta","unit":"db","price":400,"wiki":["Endive"],"syn":[]},
+  {"id":"hegyes-eros-paprika","name":"Hegyes erős paprika","cat":"paprika","unit":"db","price":100,"wiki":["Cayenne pepper","Chili pepper"],"syn":["eros paprika","hegyes paprika","csipos paprika"]},
+  {"id":"kaliforniai-paprika-piros-sarga-zold","name":"Kaliforniai paprika (piros, sárga, zöld)","cat":"paprika","unit":"kg","price":800,"wiki":["Bell pepper"],"syn":["kaliforniai","kaliforniai paprika","kali paprika"]},
+  {"id":"kapia-paprika","name":"Kápia paprika","cat":"paprika","unit":"kg","price":600,"wiki":["Pimiento","Bell pepper"],"syn":["kapia"]},
+  {"id":"koktelparadicsom","name":"Koktélparadicsom","cat":"paprika","unit":"kg","price":700,"wiki":["Cherry tomato"],"syn":[]},
+  {"id":"lecsopaprika","name":"Lecsópaprika","cat":"paprika","unit":"kg","price":350,"wiki":["Hungarian wax pepper","Bell pepper"],"syn":["lecso paprika"]},
+  {"id":"padlizsan","name":"Padlizsán","cat":"paprika","unit":"kg","price":400,"wiki":["Eggplant"],"syn":[]},
+  {"id":"paradicsom","name":"Paradicsom","cat":"paprika","unit":"kg","price":310,"wiki":["Tomato"],"syn":[]},
+  {"id":"tv-paprika","name":"Tv-paprika","cat":"paprika","unit":"kg","price":470,"wiki":["Hungarian wax pepper","Bell pepper"],"syn":["tv paprika","tolteni valo paprika","toltelek paprika"]},
+  {"id":"cukkini","name":"Cukkini","cat":"uborka","unit":"kg","price":180,"wiki":["Zucchini"],"syn":[]},
+  {"id":"kigyouborka","name":"Kígyóuborka","cat":"uborka","unit":"kg","price":500,"wiki":["Cucumber"],"syn":["uborka","salatauborka","kigyo uborka"]},
+  {"id":"sutotok","name":"Sütőtök","cat":"uborka","unit":"kg","price":400,"wiki":["Winter squash","Butternut squash"],"syn":["tok","sutotok","hokkaido"]},
+  {"id":"csiperke-gomba-i-o","name":"Csiperke gomba I.o.","cat":"gomba","unit":"kg","price":970,"wiki":["Agaricus bisporus"],"syn":["csiperke","gomba","csiperkegomba"]},
+  {"id":"csiperke-gomba-i-o-apro","name":"Csiperke gomba I.o. apró","cat":"gomba","unit":"kg","price":800,"wiki":["Agaricus bisporus"],"syn":[]},
+  {"id":"laska-gomba","name":"Laska gomba","cat":"gomba","unit":"kg","price":1200,"wiki":["Pleurotus ostreatus"],"syn":["laskagomba","laska"]},
+  {"id":"barna-csiperke","name":"Barna csiperke","cat":"gomba","unit":"kg","price":1050,"wiki":["Agaricus bisporus"],"syn":[]},
+  {"id":"bazsalikom","name":"Bazsalikom","cat":"fuszer","unit":"köteg","price":500,"wiki":["Basil"],"syn":[]},
+  {"id":"francia-petrezselyem","name":"Francia petrezselyem","cat":"fuszer","unit":"köteg","price":350,"wiki":["Parsley"],"syn":[]},
+  {"id":"kakukkfu","name":"Kakukkfű","cat":"fuszer","unit":"köteg","price":450,"wiki":["Thyme"],"syn":[]},
+  {"id":"kapor","name":"Kapor","cat":"fuszer","unit":"köteg","price":800,"wiki":["Dill"],"syn":[]},
+  {"id":"koriander","name":"Koriander","cat":"fuszer","unit":"köteg","price":300,"wiki":["Coriander"],"syn":[]},
+  {"id":"menta","name":"Menta","cat":"fuszer","unit":"köteg","price":300,"wiki":["Mentha"],"syn":[]},
+  {"id":"snidling","name":"Snidling","cat":"fuszer","unit":"köteg","price":600,"wiki":["Chives"],"syn":["metelohagyma"]},
+  {"id":"petrezselyem","name":"Petrezselyem","cat":"fuszer","unit":"köteg","price":350,"wiki":["Parsley"],"syn":["petrezselyem zold","petrezselyemzold","zold petrezselyem"]},
+  {"id":"rozmaring","name":"Rozmaring","cat":"fuszer","unit":"köteg","price":450,"wiki":["Rosemary"],"syn":[]},
+  {"id":"zsalya","name":"Zsálya","cat":"fuszer","unit":"köteg","price":450,"wiki":["Salvia officinalis"],"syn":[]},
+  {"id":"afonya-125-g","name":"Áfonya (125 g)","cat":"gyumolcs","unit":"doboz","price":400,"wiki":["Blueberry"],"syn":[]},
+  {"id":"alma-golden","name":"Alma golden","cat":"gyumolcs","unit":"kg","price":260,"wiki":["Golden Delicious","Apple"],"syn":["alma","golden"]},
+  {"id":"alma-idared","name":"Alma idared","cat":"gyumolcs","unit":"kg","price":260,"wiki":["Idared","Apple"],"syn":[]},
+  {"id":"alma-zold","name":"Alma zöld","cat":"gyumolcs","unit":"kg","price":420,"wiki":["Granny Smith"],"syn":[]},
+  {"id":"alma-starking","name":"Alma Starking","cat":"gyumolcs","unit":"kg","price":440,"wiki":["Red Delicious","Apple"],"syn":[]},
+  {"id":"import-eper","name":"Import eper","cat":"gyumolcs","unit":"kg","price":2500,"wiki":["Strawberry"],"syn":["eper"]},
+  {"id":"gorogdinnye","name":"Görögdinnye","cat":"gyumolcs","unit":"kg","price":160,"wiki":["Watermelon"],"syn":["dinnye","gorog dinnye"]},
+  {"id":"korte","name":"Körte","cat":"gyumolcs","unit":"kg","price":470,"wiki":["Pear"],"syn":[]},
+  {"id":"malna-125-g","name":"Málna (125 g)","cat":"gyumolcs","unit":"doboz","price":450,"wiki":["Raspberry"],"syn":[]},
+  {"id":"mezdinnye","name":"Mézdinnye","cat":"gyumolcs","unit":"kg","price":200,"wiki":["Honeydew (melon)","Melon"],"syn":[]},
+  {"id":"nektarin","name":"Nektarin","cat":"gyumolcs","unit":"kg","price":400,"wiki":["Nectarine"],"syn":[]},
+  {"id":"birsalma","name":"Birsalma","cat":"gyumolcs","unit":"kg","price":null,"wiki":["Quince"],"syn":[]},
+  {"id":"ribizli-125-g","name":"Ribizli (125 g)","cat":"gyumolcs","unit":"doboz","price":800,"wiki":["Redcurrant"],"syn":[]},
+  {"id":"sargabarack","name":"Sárgabarack","cat":"gyumolcs","unit":"kg","price":600,"wiki":["Apricot"],"syn":["barack","kajszi","kajszibarack"]},
+  {"id":"sargadinnye","name":"Sárgadinnye","cat":"gyumolcs","unit":"kg","price":200,"wiki":["Cantaloupe"],"syn":[]},
+  {"id":"szeder-125-g","name":"Szeder (125 g)","cat":"gyumolcs","unit":"doboz","price":null,"wiki":["Blackberry"],"syn":[]},
+  {"id":"szilva-ringlo","name":"Szilva ringló","cat":"gyumolcs","unit":"kg","price":400,"wiki":["Greengage"],"syn":[]},
+  {"id":"szilva","name":"Szilva","cat":"gyumolcs","unit":"kg","price":400,"wiki":["Plum"],"syn":[]},
+  {"id":"szolo-feher","name":"Szőlő – fehér","cat":"gyumolcs","unit":"kg","price":500,"wiki":["Grape"],"syn":["szolo","feher szolo"]},
+  {"id":"szolo-rose","name":"Szőlő – rosé","cat":"gyumolcs","unit":"kg","price":500,"wiki":["Grape"],"syn":["rose szolo"]},
+  {"id":"ananasz-big","name":"Ananász big","cat":"egzotikus","unit":"db","price":860,"wiki":["Pineapple"],"syn":[]},
+  {"id":"ananasz-normal","name":"Ananász normal","cat":"egzotikus","unit":"db","price":530,"wiki":["Pineapple"],"syn":["ananasz"]},
+  {"id":"avokado-hass","name":"Avokádó – Hass","cat":"egzotikus","unit":"db","price":380,"wiki":["Hass avocado","Avocado"],"syn":["avokado"]},
+  {"id":"banan","name":"Banán","cat":"egzotikus","unit":"kg","price":390,"wiki":["Banana"],"syn":["banan"]},
+  {"id":"citrom","name":"Citrom","cat":"egzotikus","unit":"kg","price":410,"wiki":["Lemon"],"syn":[]},
+  {"id":"csillaggyumolcs","name":"Csillaggyümölcs","cat":"egzotikus","unit":"db","price":null,"wiki":["Carambola"],"syn":[]},
+  {"id":"datolya-aszalt","name":"Datolya aszalt","cat":"egzotikus","unit":"kg","price":1050,"wiki":["Medjool","Date palm"],"syn":[]},
+  {"id":"fuge-aszalt","name":"Füge aszalt","cat":"egzotikus","unit":"kg","price":2350,"wiki":["Common fig"],"syn":[]},
+  {"id":"granatalma","name":"Gránátalma","cat":"egzotikus","unit":"db","price":400,"wiki":["Pomegranate"],"syn":[]},
+  {"id":"grapefruit","name":"Grapefruit","cat":"egzotikus","unit":"kg","price":400,"wiki":["Grapefruit"],"syn":[]},
+  {"id":"kiwi","name":"Kiwi","cat":"egzotikus","unit":"kg","price":900,"wiki":["Kiwifruit"],"syn":[]},
+  {"id":"lime","name":"Lime","cat":"egzotikus","unit":"kg","price":1190,"wiki":["Key lime","Lime (fruit)"],"syn":[]},
+  {"id":"mandarin","name":"Mandarin","cat":"egzotikus","unit":"kg","price":null,"wiki":["Mandarin orange"],"syn":["mandarin"]},
+  {"id":"mango","name":"Mangó","cat":"egzotikus","unit":"db","price":null,"wiki":["Mango"],"syn":[]},
+  {"id":"narancs-extra","name":"Narancs extra","cat":"egzotikus","unit":"kg","price":290,"wiki":["Orange (fruit)"],"syn":[]},
+  {"id":"narancs","name":"Narancs","cat":"egzotikus","unit":"kg","price":280,"wiki":["Orange (fruit)"],"syn":["narancs"]},
+  {"id":"physalis","name":"Physalis","cat":"egzotikus","unit":"db","price":400,"wiki":["Physalis peruviana"],"syn":[]},
+  {"id":"piros-grapefruit","name":"Piros grapefruit","cat":"egzotikus","unit":"kg","price":400,"wiki":["Grapefruit"],"syn":[]},
+  {"id":"pomelo","name":"Pomelo","cat":"egzotikus","unit":"db","price":null,"wiki":["Pomelo"],"syn":[]},
+  {"id":"sarkanygyumolcs","name":"Sárkánygyümölcs","cat":"egzotikus","unit":"db","price":null,"wiki":["Pitaya"],"syn":[]},
+  {"id":"daralt-dio","name":"Darált dió","cat":"szaraz","unit":"kg","price":2400,"wiki":["Walnut"],"syn":[]},
+  {"id":"diobel-extra","name":"Dióbél extra","cat":"szaraz","unit":"kg","price":2400,"wiki":["Walnut"],"syn":[]},
+  {"id":"lencse","name":"Lencse","cat":"szaraz","unit":"kg","price":700,"wiki":["Lentil"],"syn":[]},
+  {"id":"tarkabab","name":"Tarkabab","cat":"szaraz","unit":"kg","price":700,"wiki":["Pinto bean"],"syn":[]},
+  {"id":"sargaborso","name":"Sárgaborsó","cat":"szaraz","unit":"kg","price":350,"wiki":["Split pea"],"syn":[]},
+  {"id":"almapaprika-5-l","name":"Almapaprika (5 L)","cat":"savanyu","unit":"vödör","price":2400,"wiki":["Pickled pepper","Bell pepper"],"syn":[]},
+  {"id":"cekla-5-l","name":"Cékla (5 L)","cat":"savanyu","unit":"vödör","price":2400,"wiki":["Pickled beet","Beetroot"],"syn":[]},
+  {"id":"csalamade-5-l","name":"Csalamádé (5 L)","cat":"savanyu","unit":"vödör","price":2400,"wiki":["Pickling","Pickled cucumber"],"syn":[]},
+  {"id":"csemege-uborka-5-l","name":"Csemege uborka (5 L)","cat":"savanyu","unit":"vödör","price":2400,"wiki":["Pickled cucumber"],"syn":["csemege uborka","savanyu uborka"]},
+  {"id":"egesz-kaposzta-5-l","name":"Egész káposzta (5 L)","cat":"savanyu","unit":"vödör","price":2400,"wiki":["Sauerkraut"],"syn":[]},
+  {"id":"kovaszos-uborka-5-l","name":"Kovászos uborka (5 L)","cat":"savanyu","unit":"vödör","price":2400,"wiki":["Pickled cucumber"],"syn":["kovaszos uborka"]},
+  {"id":"pepperoni-5-l","name":"Pepperoni (5 L)","cat":"savanyu","unit":"vödör","price":2800,"wiki":["Pepperoncini"],"syn":[]},
+  {"id":"vagott-kaposzta-5-l","name":"Vágott káposzta (5 L)","cat":"savanyu","unit":"vödör","price":2300,"wiki":["Sauerkraut"],"syn":[]},
+  {"id":"vegyes-darabos-5-l","name":"Vegyes-darabos (5 L)","cat":"savanyu","unit":"vödör","price":2400,"wiki":["Pickling","Pickled cucumber"],"syn":[]},
+  {"id":"gyongyhagyma-5-l","name":"Gyöngyhagyma (5 L)","cat":"savanyu","unit":"vödör","price":3000,"wiki":["Pearl onion"],"syn":[]},
+  {"id":"tojas-fertotlenitett-ozon-m","name":"Tojás – fertőtlenített, ózon \"M\"","cat":"tojas","unit":"db","price":55,"wiki":["Egg as food"],"syn":["tojas","tojas m","m tojas"]},
+  {"id":"tojas-fertotlenitett-ozon-l","name":"Tojás – fertőtlenített, ózon \"L\"","cat":"tojas","unit":"db","price":57,"wiki":["Egg as food"],"syn":["tojas l","l tojas"]},
+  {"id":"csira","name":"Csíra","cat":"csira","unit":"db","price":890,"wiki":["Sprouting","Bean sprout"],"syn":[]},
+  {"id":"zoldborso-csira","name":"Zöldborsó csíra","cat":"csira","unit":"db","price":890,"wiki":["Pea shoots","Pea"],"syn":[]},
+  {"id":"mungobab-csira","name":"Mungóbab csíra","cat":"csira","unit":"db","price":700,"wiki":["Bean sprout"],"syn":[]},
+  {"id":"tisztitott-burgonya-egesz","name":"Tisztított burgonya, egész","cat":"konyhakesz","unit":"kg","price":330,"wiki":["Potato"],"syn":["tisztitott krumpli","pucolt krumpli","hamozott krumpli"]},
+  {"id":"tisztitott-sargarepa","name":"Tisztított sárgarépa","cat":"konyhakesz","unit":"kg","price":440,"wiki":["Carrot"],"syn":[]},
+  {"id":"tisztitott-burgonya-gepi-feldolgozott","name":"Tisztított burgonya, gépi feldolgozott","cat":"konyhakesz","unit":"kg","price":340,"wiki":["Potato"],"syn":[]},
+  {"id":"tisztitott-feherrepa","name":"Tisztított fehérrépa","cat":"konyhakesz","unit":"kg","price":790,"wiki":["Parsnip"],"syn":[]},
+  {"id":"tisztitott-burgonya-kezi-kocka","name":"Tisztított burgonya kézi kocka","cat":"konyhakesz","unit":"kg","price":350,"wiki":["Potato"],"syn":[]},
+  {"id":"tisztitott-zeller","name":"Tisztított zeller","cat":"konyhakesz","unit":"kg","price":610,"wiki":["Celeriac"],"syn":[]},
+  {"id":"tisztitott-burgonya-cikk","name":"Tisztított burgonya cikk","cat":"konyhakesz","unit":"kg","price":340,"wiki":["Potato wedges","Potato"],"syn":[]},
+  {"id":"tisztitott-fejeskaposzta","name":"Tisztított fejeskáposzta","cat":"konyhakesz","unit":"kg","price":395,"wiki":["Cabbage"],"syn":["tisztitott kaposzta"]},
+  {"id":"tisztitott-voroshagyma","name":"Tisztított vöröshagyma","cat":"konyhakesz","unit":"kg","price":410,"wiki":["Onion"],"syn":["tisztitott hagyma","pucolt hagyma"]},
+  {"id":"tisztitott-kelkaposzta","name":"Tisztított kelkáposzta","cat":"konyhakesz","unit":"kg","price":640,"wiki":["Savoy cabbage"],"syn":[]},
+  {"id":"tisztitott-voroshagyma-kocka-szelet","name":"Tisztított vöröshagyma kocka, szelet","cat":"konyhakesz","unit":"kg","price":410,"wiki":["Onion"],"syn":[]},
+  {"id":"tisztitott-voroskaposzta","name":"Tisztított vöröskáposzta","cat":"konyhakesz","unit":"kg","price":430,"wiki":["Red cabbage"],"syn":[]},
+  {"id":"tisztitott-lilahagyma","name":"Tisztított lilahagyma","cat":"konyhakesz","unit":"kg","price":490,"wiki":["Red onion"],"syn":[]},
+  {"id":"tisztitott-karalabe","name":"Tisztított karalábé","cat":"konyhakesz","unit":"kg","price":750,"wiki":["Kohlrabi"],"syn":[]},
+  {"id":"tisztitott-fokhagyma","name":"Tisztított fokhagyma","cat":"konyhakesz","unit":"kg","price":1590,"wiki":["Garlic"],"syn":[]},
+];
+
+/* ================================================================
+   v2.0 — KEZDŐKÉPERNYŐ · TERMÉKKATALÓGUS · BEVÁSÁRLÁS-FOLYAMAT
+   ================================================================ */
+const $ = (id) => document.getElementById(id);
+
+function normText(s) {
+  return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+const CAT_BY_KEY = {}; CATALOG_CATS.forEach(c => { CAT_BY_KEY[c.key] = c; });
+const PROD_BY_ID = {};
+CATALOG.forEach(p => { p.n = normText(p.name); p.s = (p.syn || []).map(normText); PROD_BY_ID[p.id] = p; });
+
+const UNIT_OPTIONS = [['kg', 'kg'], ['db', 'db'], ['csomó', 'csomó'], ['köteg', 'köteg'], ['doboz', 'doboz'], ['vödör', 'vödör'], ['csomag', 'csomag'], ['rekesz', 'rekesz'], ['lada', 'láda']];
+function toUnitKey(u) { return u === 'láda' ? 'lada' : u; }
+function fmtQty(q) { return String(Math.round(Number(q) * 100) / 100).replace('.', ','); }
+function fmtFt(n) { return Math.round(n).toLocaleString('hu-HU') + ' Ft'; }
+
+/* ---------- TERMÉKKÉPEK: élő betöltés a Wikipédiáról, eltárolva a készüléken ---------- */
+let imgCache = {};
+try { imgCache = JSON.parse(localStorage.getItem('piaci_imgs') || '{}'); } catch (e) { imgCache = {}; }
+function saveImgCache() { try { localStorage.setItem('piaci_imgs', JSON.stringify(imgCache)); } catch (e) { /* tele a tár */ } }
+const imgQueue = []; let imgActive = 0; const imgPending = {};
+function pumpImgQueue() {
+  while (imgActive < 4 && imgQueue.length) {
+    const task = imgQueue.shift(); imgActive++;
+    task().finally(() => { imgActive--; pumpImgQueue(); });
+  }
+}
+function fetchWikiThumb(title) {
+  const k = 't:' + title;
+  if (k in imgCache) return Promise.resolve(imgCache[k]);
+  if (imgPending[k]) return imgPending[k];
+  imgPending[k] = new Promise(resolve => {
+    imgQueue.push(() => fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title.replace(/ /g, '_')))
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        const u = (j && j.type !== 'disambiguation' && j.thumbnail && j.thumbnail.source) || '';
+        imgCache[k] = u; saveImgCache(); resolve(u);
+      })
+      .catch(() => resolve('')));   // hálózati hiba: nem tároljuk el, később újrapróbáljuk
+    pumpImgQueue();
+  }).finally(() => { delete imgPending[k]; });
+  return imgPending[k];
+}
+function resolveProductImage(p) {
+  if (imgCache[p.id]) return Promise.resolve(imgCache[p.id]);
+  return p.wiki.reduce((chain, t) => chain.then(u => u || fetchWikiThumb(t)), Promise.resolve(''))
+    .then(u => { if (u) { imgCache[p.id] = u; saveImgCache(); } return u; });
+}
+let imgObserver = null;
+function applyImg(img, url) {
+  if (!url) return;
+  img.onload = () => img.classList.add('loaded');
+  img.src = url;
+}
+function hydrateImages(root) {
+  if (!imgObserver) {
+    imgObserver = new IntersectionObserver(entries => entries.forEach(e => {
+      if (e.isIntersecting) {
+        imgObserver.unobserve(e.target);
+        const img = e.target;
+        resolveProductImage(PROD_BY_ID[img.dataset.pid]).then(u => applyImg(img, u));
+      }
+    }), { rootMargin: '250px' });
+  }
+  root.querySelectorAll('img[data-pid]:not([src])').forEach(img => {
+    const p = PROD_BY_ID[img.dataset.pid];
+    if (p && imgCache[p.id]) applyImg(img, imgCache[p.id]); else imgObserver.observe(img);
+  });
+}
+
+/* ---------- NAPI SESSION (bevásárlólista + folyamat állapota) ---------- */
+let SESSION = null;
+function newSession() { return { id: 's_' + Date.now(), date: todayStr(), phase: 'list', items: [], updated: Date.now() }; }
+function normalizeSession(s) {
+  s.items = (s.items || []).map(it => Object.assign({ done: false, buy: null, collected: false }, it));
+  return s;
+}
+function loadSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem('piaci_session') || 'null');
+    if (s && s.date === todayStr()) return normalizeSession(s);
+  } catch (e) { /* hibás adat */ }
+  return newSession();
+}
+SESSION = loadSession();
+function saveSession() {
+  SESSION.updated = Date.now();
+  const clean = JSON.parse(JSON.stringify(SESSION));
+  try { localStorage.setItem('piaci_session', JSON.stringify(clean)); } catch (e) { /* ignore */ }
+  if (firebaseReady) db.ref('shopSession/current').set(clean);
+  refreshSessionUi();
+}
+function listenSession() {
+  if (!firebaseReady) return;
+  db.ref('shopSession/current').on('value', snap => {
+    const s = snap.val();
+    if (s && s.date === todayStr() && (s.updated || 0) > (SESSION.updated || 0)) {
+      SESSION = normalizeSession(s);
+      try { localStorage.setItem('piaci_session', JSON.stringify(SESSION)); } catch (e) { /* ignore */ }
+      refreshSessionUi(true);
+    }
+  });
+}
+function findItem(pid) { return SESSION.items.find(i => i.pid === pid); }
+function addOrMergeItem(pid, qty, unit) {
+  const p = PROD_BY_ID[pid]; if (!p) return;
+  qty = Math.round(qty * 100) / 100; unit = unit || p.unit;
+  const ex = findItem(pid);
+  if (ex) { if (ex.unit === unit) ex.qty = Math.round((ex.qty + qty) * 100) / 100; else { ex.qty = qty; ex.unit = unit; } }
+  else SESSION.items.push({ pid, name: p.name, cat: p.cat, unit, qty, done: false, buy: null, collected: false });
+}
+
+/* ---------- KÉPERNYŐ-VÁLTÁS ---------- */
+function showScreen(name) {
+  document.body.dataset.screen = name;
+  if (name === 'home') updateHomeCard();
+  if (name === 'list') { renderCatalog(); updateListBar(); }
+  if (name === 'shop' || name === 'map') {
+    if (typeof map !== 'undefined' && map && window.google) setTimeout(() => google.maps.event.trigger(map, 'resize'), 60);
+    updateFab();
+  }
+  closePanel();
+}
+function sessionStats() {
+  const total = SESSION.items.length, done = SESSION.items.filter(i => i.done).length, coll = SESSION.items.filter(i => i.collected).length;
+  return { total, done, coll };
+}
+function phaseLabel() {
+  const st = sessionStats();
+  if (!st.total) return null;
+  if (SESSION.phase === 'list') return { t: 'Lista összeállítása', s: st.total + ' tétel kiválasztva' };
+  if (SESSION.phase === 'shop') return { t: 'Bevásárlás folyamatban', s: st.done + '/' + st.total + ' tétel megvéve' };
+  if (SESSION.phase === 'collect') return { t: 'Összegyűjtés folyamatban', s: st.coll + '/' + st.total + ' tétel összegyűjtve' };
+  return { t: 'Összegyűjtve — komissiózásra vár', s: st.total + ' tétel' };
+}
+function updateHomeCard() {
+  const l = phaseLabel(), card = $('resumeCard');
+  if (!l) { card.classList.remove('show'); return; }
+  $('resumeTitle').textContent = l.t; $('resumeSub').textContent = l.s; card.classList.add('show');
+}
+function refreshSessionUi(fromRemote) {
+  updateHomeCard(); updateFab(); updateListBar();
+  if (fromRemote && document.body.dataset.screen === 'list') renderCatalog();
+}
+function updateFab() {
+  const fab = $('shopFab'), st = sessionStats();
+  if (!st.total || SESSION.phase === 'list') { fab.classList.remove('show'); return; }
+  fab.classList.add('show');
+  if (SESSION.phase === 'shop') fab.textContent = '✅ Lista ' + st.done + '/' + st.total;
+  else if (SESSION.phase === 'collect') fab.textContent = '📦 Összegyűjtés ' + st.coll + '/' + st.total;
+  else fab.textContent = '📦 Összegyűjtve';
+}
+
+$('goShop').addEventListener('click', () => showScreen('list'));
+$('goMap').addEventListener('click', () => showScreen('map'));
+$('homeBtn').addEventListener('click', () => showScreen('home'));
+$('resumeCard').addEventListener('click', () => {
+  if (SESSION.phase === 'list') showScreen('list');
+  else { showScreen('shop'); openPhasePanel(); }
+});
+$('lsBack').addEventListener('click', () => showScreen('home'));
+$('shopFab').addEventListener('click', openPhasePanel);
+
+/* ---------- TERMÉKKATALÓGUS-NÉZET ---------- */
+let filterSel = false;
+function productCardHtml(p, idx) {
+  const cat = CAT_BY_KEY[p.cat];
+  return '<div class="pcard" data-pid="' + p.id + '" style="--i:' + Math.min(idx, 14) + '">' +
+    '<div class="pimg"><span class="pemo">' + cat.emoji + '</span><img data-pid="' + p.id + '" alt="" decoding="async"></div>' +
+    '<div class="pname">' + escapeHtml(p.name) + '</div><div class="punit">' + escapeHtml(p.unit) + '</div>' +
+    '<div class="pctrl"></div><div class="pcheck">✓</div></div>';
+}
+function updateCard(pid) {
+  const el = document.querySelector('.pcard[data-pid="' + pid + '"]'); if (!el) return;
+  const it = findItem(pid), ctrl = el.querySelector('.pctrl');
+  if (!it) { el.classList.remove('selected'); ctrl.innerHTML = ''; return; }
+  el.classList.add('selected');
+  ctrl.innerHTML = '<button data-act="dec" aria-label="kevesebb">−</button><input type="number" inputmode="decimal" step="any" min="0" value="' + it.qty + '"><button data-act="inc" aria-label="több">+</button>';
+}
+function renderCatalog() {
+  const q = normText($('lsSearch').value), wrap = $('catalogWrap'); let html = '', n = 0;
+  CATALOG_CATS.forEach(c => {
+    let ps = CATALOG.filter(p => p.cat === c.key);
+    if (q) ps = ps.filter(p => p.n.includes(q) || p.s.some(x => x.includes(q)));
+    if (filterSel) ps = ps.filter(p => findItem(p.id));
+    if (!ps.length) return; n += ps.length;
+    html += '<section class="csec" id="sec-' + c.key + '"><h3><span>' + c.emoji + '</span>' + escapeHtml(c.name) + '<em>' + ps.length + '</em></h3><div class="pgrid">' +
+      ps.map((p, i) => productCardHtml(p, i)).join('') + '</div></section>';
+  });
+  wrap.innerHTML = html || '<div class="empty">😕 Nincs találat.<br>Próbáld másképp, vagy illessz be egy listát a 📧 gombbal.</div>';
+  wrap.querySelectorAll('.pcard').forEach(el => updateCard(el.dataset.pid));
+  hydrateImages(wrap);
+}
+function renderChips() {
+  $('lsChips').innerHTML = '<button class="chip on" data-k="">Mind</button>' +
+    CATALOG_CATS.map(c => '<button class="chip" data-k="' + c.key + '">' + c.emoji + ' ' + escapeHtml(c.name.split(',')[0]) + '</button>').join('');
+}
+function updateListBar() {
+  const n = SESSION.items.length;
+  $('lsSelCount').textContent = n;
+  const go = $('lsGo'); go.disabled = !n;
+  go.textContent = n ? ('Indulhat a bevásárlás → (' + n + ' tétel)') : 'Válassz ki legalább egy terméket';
+}
+$('catalogWrap').addEventListener('click', (e) => {
+  const card = e.target.closest('.pcard'); if (!card) return;
+  const pid = card.dataset.pid, p = PROD_BY_ID[pid], btn = e.target.closest('button[data-act]');
+  if (btn) {
+    const it = findItem(pid); if (!it) return;
+    const nq = Math.round((it.qty + (btn.dataset.act === 'inc' ? 1 : -1)) * 100) / 100;
+    if (nq <= 0) SESSION.items = SESSION.items.filter(i => i.pid !== pid); else it.qty = nq;
+  } else if (e.target.closest('.pctrl')) { return; }
+  else if (findItem(pid)) { SESSION.items = SESSION.items.filter(i => i.pid !== pid); }
+  else { addOrMergeItem(pid, 1, p.unit); }
+  if (SESSION.phase !== 'list' && !SESSION.items.length) SESSION.phase = 'list';
+  saveSession(); updateCard(pid);
+  if (filterSel && !findItem(pid)) card.remove();
+});
+$('catalogWrap').addEventListener('change', (e) => {
+  if (!e.target.matches('.pctrl input')) return;
+  const pid = e.target.closest('.pcard').dataset.pid, it = findItem(pid); if (!it) return;
+  const v = parseFloat(String(e.target.value).replace(',', '.'));
+  if (!(v > 0)) { SESSION.items = SESSION.items.filter(i => i.pid !== pid); } else it.qty = v;
+  saveSession(); updateCard(pid);
+});
+$('lsSearch').addEventListener('input', renderCatalog);
+$('lsSelOnly').addEventListener('click', () => { filterSel = !filterSel; $('lsSelOnly').style.background = filterSel ? '#ffb300' : ''; $('lsSelOnly').style.color = filterSel ? '#2a1c00' : ''; renderCatalog(); });
+$('lsChips').addEventListener('click', (e) => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  document.querySelectorAll('#lsChips .chip').forEach(c => c.classList.toggle('on', c === b));
+  const k = b.dataset.k;
+  if (!k) { $('lsScroll').scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  $('lsSearch').value = ''; if (filterSel) { filterSel = false; $('lsSelOnly').style.background = ''; $('lsSelOnly').style.color = ''; renderCatalog(); }
+  const sec = $('sec-' + k); if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+$('lsGo').addEventListener('click', () => {
+  if (!SESSION.items.length) return;
+  SESSION.phase = 'shop'; saveSession(); showScreen('shop'); openChecklist();
+});
+renderChips();
+
+/* ---------- EMAIL / RENDELÉSI LISTA FELISMERÉSE ---------- */
+const UNIT_ALIASES = { kg: 'kg', kilo: 'kg', kilogramm: 'kg', kgs: 'kg', db: 'db', darab: 'db', csomo: 'csomó', csom: 'csomag', csomag: 'csomag', koteg: 'köteg', ktg: 'köteg',
+  doboz: 'doboz', dob: 'doboz', vodor: 'vödör', vod: 'vödör', rekesz: 'rekesz', lada: 'láda', g: 'g', gramm: 'g', dkg: 'dkg', deka: 'dkg' };
+function levenshtein2(a, b) {
+  const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) cur[j] = a[i - 1] === b[j - 1] ? prev[j - 1] : 1 + Math.min(prev[j - 1], prev[j], cur[j - 1]);
+    prev = cur;
+  }
+  return prev[n];
+}
+function matchProduct(phrase) {
+  const nq = normText(phrase); if (!nq) return null;
+  let best = null;
+  CATALOG.forEach((p, idx) => {
+    [p.n].concat(p.s).forEach((k, ki) => {
+      if (!k) return; let sc = 0;
+      if (k === nq) sc = 100 - (ki ? 0 : -2);
+      else if (k.length >= 3 && nq.startsWith(k) && nq.length - k.length <= 3) sc = 90;
+      else if (k.includes(nq) && nq.length >= 3) sc = 70 - Math.min(20, k.length - nq.length);
+      else if (nq.length >= 4 && nq.includes(k) && k.length >= 4) sc = 60;
+      else { const d = levenshtein2(nq, k), lim = k.length > 6 ? 2 : 1; if (d <= lim && nq.length >= 4) sc = 50 - d * 5; }
+      if (sc > 0 && (!best || sc > best.score || (sc === best.score && idx < best.idx))) best = { p, score: sc, idx };
+    });
+  });
+  return best && best.score >= 45 ? best : null;
+}
+function parseOrderText(text) {
+  const t = String(text || '').replace(/(\d),(\d)/g, '$1.$2').replace(/[–—]/g, '-');
+  const segs = t.split(/[\n;,]|\s+és\s+|\s\+\s/i).map(s => s.replace(/^[\s\-•*·]+/, '').replace(/[.:]+\s*$/, '').trim()).filter(Boolean);
+  const out = [];
+  segs.forEach(seg => {
+    let qty = null, unit = null, phrase = null, m;
+    if ((m = seg.match(/^(\d+(?:\.\d+)?)\s*(.*)$/))) {            // "5kg fejeskáposzta", "10 kilo répa", "3 saláta"
+      qty = parseFloat(m[1]); let rest = m[2].trim();
+      const tok = rest.split(/\s+/)[0], key = normText(tok);
+      if (UNIT_ALIASES[key]) { unit = UNIT_ALIASES[key]; rest = rest.slice(tok.length).trim(); }
+      rest = rest.replace(/^(?:os|ös|nyi|nyit)\s+/i, '').replace(/^(?:of)\s+/i, ''); phrase = rest;
+    } else if ((m = seg.match(/^(.*?)\s+(\d+(?:\.\d+)?)\s*([^\d\s]+)?$/))) {   // "fejeskáposzta 5 kg"
+      phrase = m[1]; qty = parseFloat(m[2]); if (m[3] && UNIT_ALIASES[normText(m[3])]) unit = UNIT_ALIASES[normText(m[3])];
+    } else { phrase = seg; }
+    if (unit === 'g') { qty = qty / 1000; unit = 'kg'; } else if (unit === 'dkg') { qty = qty / 100; unit = 'kg'; }
+    const mt = phrase ? matchProduct(phrase) : null;
+    out.push({ raw: seg, qty: qty == null ? 1 : Math.round(qty * 100) / 100, unit: unit || (mt ? mt.p.unit : 'kg'), pid: mt ? mt.p.id : '', matched: !!mt, hadQty: qty != null });
+  });
+  return out;
+}
+function productOptionsHtml() {
+  return '<option value="">— válassz terméket —</option>' + CATALOG_CATS.map(c =>
+    '<optgroup label="' + escapeHtml(c.emoji + ' ' + c.name) + '">' + CATALOG.filter(p => p.cat === c.key).map(p => '<option value="' + p.id + '">' + escapeHtml(p.name) + '</option>').join('') + '</optgroup>').join('');
+}
+function unitSelectHtml(sel) {
+  const base = UNIT_OPTIONS.map(u => u[0] === 'lada' ? ['láda', 'láda'] : u);
+  return base.map(u => '<option value="' + u[0] + '"' + (u[0] === sel ? ' selected' : '') + '>' + u[1] + '</option>').join('');
+}
+let emailRows = [];
+function openModal(html) { $('modalCard').innerHTML = html; $('modal').classList.add('open'); }
+function closeModal() { $('modal').classList.remove('open'); }
+$('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });
+$('lsEmail').addEventListener('click', () => {
+  openModal('<h3>📧 Lista beillesztése</h3><p class="sub">Másold be az email szövegét — soronként vagy vesszővel elválasztva, pl.: <i>5kg fejeskáposzta, 10 kilo répa, 3 db saláta</i></p>' +
+    '<textarea id="emailText" placeholder="5kg fejeskáposzta&#10;10 kilo répa&#10;2 láda uborka"></textarea>' +
+    '<div class="mrow"><button class="go-btn ghost2" id="emClose">Mégse</button><button class="go-btn" id="emParse">Felismerés</button></div><div id="emResult"></div>');
+  $('emClose').onclick = closeModal;
+  $('emParse').onclick = () => { emailRows = parseOrderText($('emailText').value); renderEmailRows(); };
+  setTimeout(() => { const t = $('emailText'); if (t) t.focus(); }, 300);
+});
+function renderEmailRows() {
+  const box = $('emResult');
+  if (!emailRows.length) { box.innerHTML = '<p class="sub" style="margin-top:12px">Nem találtam felismerhető sort.</p>'; return; }
+  const opts = productOptionsHtml();
+  box.innerHTML = emailRows.map((r, i) =>
+    '<div class="erow' + (r.matched ? '' : ' warn') + '" data-i="' + i + '"><div class="eraw">„<b>' + escapeHtml(r.raw) + '</b>”' + (r.matched ? '' : ' — <span style="color:#8a5a00">nem ismertem fel, válaszd ki</span>') + '</div>' +
+    '<div class="efields"><select class="esel">' + opts + '</select><input class="eqty" type="number" inputmode="decimal" step="any" min="0" value="' + r.qty + '"><select class="eunit">' + unitSelectHtml(r.unit) + '</select><button class="edel" aria-label="törlés">✕</button></div></div>').join('') +
+    '<div class="mrow"><button class="go-btn" id="emAdd">Hozzáadás a listához</button></div>';
+  box.querySelectorAll('.erow').forEach(el => { el.querySelector('.esel').value = emailRows[+el.dataset.i].pid; });
+  box.onclick = (e) => { const d = e.target.closest('.edel'); if (d) { const row = d.closest('.erow'); emailRows[+row.dataset.i] = null; row.remove(); } };
+  $('emAdd').onclick = () => {
+    let added = 0, skipped = 0;
+    box.querySelectorAll('.erow').forEach(el => {
+      const pid = el.querySelector('.esel').value, qty = parseFloat(String(el.querySelector('.eqty').value).replace(',', '.')), unit = el.querySelector('.eunit').value;
+      if (pid && qty > 0) { addOrMergeItem(pid, qty, unit); added++; } else skipped++;
+    });
+    saveSession(); closeModal(); renderCatalog();
+    showStatus('✅ ' + added + ' tétel hozzáadva' + (skipped ? ' (' + skipped + ' sort kihagytam)' : ''), 3500);
+  };
+}
+
+/* ---------- BEVÁSÁRLÁS: CHECKLIST + KIPIPÁLÁS + HELY/ÁR/EDÉNYZET ---------- */
+function openPhasePanel() {
+  if (SESSION.phase === 'shop') openChecklist();
+  else if (SESSION.phase === 'collect') renderCollect();
+  else if (SESSION.phase === 'collected') renderCollectedDone();
+  else openChecklist();
+}
+function openPanel() { $('panel').classList.add('open'); $('overlay').classList.add('open'); }
+function thumbHtml(it) {
+  return '<div class="cthumb"><span>' + (CAT_BY_KEY[it.cat] ? CAT_BY_KEY[it.cat].emoji : '🛒') + '</span><img data-pid="' + it.pid + '" alt=""></div>';
+}
+function openChecklist() { renderChecklist(); openPanel(); }
+function renderChecklist() {
+  const st = sessionStats(), pct = st.total ? Math.round(st.done * 100 / st.total) : 0;
+  const rows = SESSION.items.map((it, idx) => {
+    const b = it.buy;
+    const sub = it.done && b ? '<small class="cdone">✓ ' + escapeHtml(b.vendorName || '?') + ' · ' + fmtQty(b.price) + ' Ft/' + escapeHtml(unitLabel(b.unit)) + (b.crateType ? ' · ' + b.crateQty + ' ' + unitLabel(b.crateType) + ' csere' : '') + '</small>' : '';
+    return '<div class="crow' + (it.done ? ' done' : '') + '" data-i="' + idx + '" style="animation-delay:' + Math.min(idx, 12) * 25 + 'ms">' + thumbHtml(it) +
+      '<div class="cmain"><b>' + escapeHtml(it.name) + '</b><small>' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + '</small>' + sub + '</div><div class="ccheck">✓</div></div>';
+  }).join('');
+  $('panelContent').innerHTML = '<h3>🛒 Bevásárlás — ' + st.done + '/' + st.total + '</h3><div class="prog"><i style="width:' + pct + '%"></i></div>' + rows +
+    '<div class="mrow" style="margin-top:12px"><button class="go-btn ghost2" id="ckAddMore">+ Termék hozzáadása</button>' +
+    (st.done ? '<button class="go-btn amber" id="ckSummary">Összesítő →</button>' : '') + '</div>';
+  $('panelContent').querySelectorAll('.crow').forEach(el => el.addEventListener('click', () => openBuyForm(+el.dataset.i)));
+  $('ckAddMore').onclick = () => { closePanel(); showScreen('list'); };
+  if ($('ckSummary')) $('ckSummary').onclick = renderSummary;
+  hydrateImages($('panelContent'));
+}
+function currentPos() { return (typeof myLocationMarker !== 'undefined' && myLocationMarker) ? myLocationMarker.getPosition() : null; }
+function openBuyForm(idx) {
+  const it = SESSION.items[idx], prev = it.buy, pos = currentPos();
+  let list = pos ? getNearbyVendorsSorted(pos.lat(), pos.lng(), NEARBY_VENDOR_LIMIT)
+    : Object.entries(vendors).map(([id, v]) => ({ id, name: v.name, dist: null })).sort((a, b) => String(a.name).localeCompare(String(b.name), 'hu'));
+  if (prev && prev.vendorId && vendors[prev.vendorId] && !list.some(v => v.id === prev.vendorId)) list.unshift({ id: prev.vendorId, name: vendors[prev.vendorId].name, dist: null });
+  const firstId = prev && prev.vendorId ? prev.vendorId : (list[0] ? list[0].id : '__new__');
+  const radios = list.map(v => '<label class="vopt"><input type="radio" name="bfVendor" value="' + v.id + '"' + (v.id === firstId ? ' checked' : '') + '><span>' + escapeHtml(v.name || 'Stand') +
+    (v.dist != null ? ' <small>(~' + Math.round(v.dist) + ' m)</small>' : '') + '</span></label>').join('') +
+    '<label class="vopt"><input type="radio" name="bfVendor" value="__new__"' + (firstId === '__new__' ? ' checked' : '') + '><span>📍 <b>Új tű a jelenlegi helyemre</b>' + (pos ? '' : ' <small>(nincs GPS-jel)</small>') + '</span></label>' +
+    '<input type="text" id="bfNewName" placeholder="Az új stand neve" style="width:100%;margin:6px 0 0;display:' + (firstId === '__new__' ? 'block' : 'none') + '">';
+  const pu = prev ? toUnitKey(prev.unit) : toUnitKey(it.unit);
+  const defQty = prev ? prev.qty : (pu === toUnitKey(it.unit) ? it.qty : '');
+  $('panelContent').innerHTML = '<h3>' + (it.done ? '✏️ Módosítás' : '✅ Kipipálás') + ' — ' + escapeHtml(it.name) + '</h3><small style="color:var(--muted)">Tervezett: ' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + '</small>' +
+    '<span class="flabel">Hol vettük?</span><div id="bfVendors">' + radios + '</div>' +
+    '<span class="flabel">Ár</span><div class="row"><input type="number" id="bfPrice" inputmode="decimal" step="any" min="0" placeholder="Ft" value="' + (prev ? prev.price : '') + '" style="flex:1"><select id="bfUnit" style="width:110px">' + unitSelectHtml(pu).replace(/value="lada"/, 'value="lada"') + '</select></div>' +
+    '<span class="flabel">Mennyiség (<span id="bfUnitLbl">' + escapeHtml(unitLabel(pu)) + '</span>)</span><div class="row"><input type="number" id="bfQty" inputmode="decimal" step="any" min="0" value="' + defQty + '" style="width:100%"></div>' +
+    '<span class="flabel">Csere edényzet</span><div class="row"><select id="bfCrate" style="flex:1"><option value="">Nincs</option><option value="rekesz"' + (prev && prev.crateType === 'rekesz' ? ' selected' : '') + '>Rekesz</option><option value="lada"' + (prev && prev.crateType === 'lada' ? ' selected' : '') + '>Láda</option></select>' +
+    '<input type="number" id="bfCrateQty" inputmode="numeric" min="0" step="1" placeholder="db" value="' + (prev && prev.crateQty ? prev.crateQty : '') + '" style="width:90px"></div>' +
+    '<div class="mrow" style="margin-top:16px"><button class="go-btn ghost2" id="bfCancel">Mégse</button><button class="go-btn" id="bfOk">' + (it.done ? 'Mentés' : 'Kipipálom ✓') + '</button></div>';
+  $('bfVendors').addEventListener('change', () => { const n = document.querySelector('input[name=bfVendor]:checked'); $('bfNewName').style.display = n && n.value === '__new__' ? 'block' : 'none'; });
+  $('bfUnit').addEventListener('change', () => { $('bfUnitLbl').textContent = unitLabel($('bfUnit').value); });
+  $('bfCancel').onclick = renderChecklist;
+  $('bfOk').onclick = () => confirmBuy(idx);
+  openPanel();
+}
+function updatePurchase(id, fields) {
+  if (firebaseReady) db.ref('purchases/' + id).update(fields);
+  else {
+    const arr = JSON.parse(localStorage.getItem('piaci_purchases') || '[]'), i = parseInt(String(id).replace('local_', ''), 10);
+    if (arr[i]) { Object.assign(arr[i], fields); localStorage.setItem('piaci_purchases', JSON.stringify(arr)); renderMarkers(); }
+  }
+}
+function confirmBuy(idx) {
+  const it = SESSION.items[idx], pos = currentPos();
+  const sel = document.querySelector('input[name=bfVendor]:checked');
+  if (!sel) { showStatus('Válaszd ki, hol vettétek!'); return; }
+  const priceRaw = $('bfPrice').value, price = parseFloat(String(priceRaw).replace(',', '.'));
+  if (priceRaw === '' || !(price >= 0)) { showStatus('⚠️ Add meg az árat!'); return; }
+  const qty = parseFloat(String($('bfQty').value).replace(',', '.'));
+  if (!(qty > 0)) { showStatus('⚠️ Add meg a mennyiséget!'); return; }
+  const unit = $('bfUnit').value, crateType = $('bfCrate').value || null, cq = parseFloat($('bfCrateQty').value);
+  if (crateType && !(cq > 0)) { showStatus('⚠️ Hány db csere edényzet kell?'); return; }
+  let vid = sel.value;
+  if (vid === '__new__') {
+    if (!pos) { showStatus('⚠️ Nincs GPS-jel, nem tudok tűt letenni. Válassz meglévő standot.'); return; }
+    vid = createVendor($('bfNewName').value.trim() || 'Névtelen stand', pos.lat(), pos.lng());
+  }
+  const vname = (vendors[vid] && vendors[vid].name) || '';
+  const crateQty = crateType ? cq : null, prev = it.buy;
+  let purchaseId = prev && prev.purchaseId;
+  if (purchaseId) updatePurchase(purchaseId, { vendorId: vid, vendorName: vname, price, unit, quantity: qty, crateType, crateQty });
+  else purchaseId = savePurchase(vid, it.name, price, qty, unit, crateType, crateQty, todayStr(), true);
+  it.done = true; it.buy = { vendorId: vid, vendorName: vname, price, unit, qty, crateType, crateQty, purchaseId, ts: Date.now() };
+  saveSession();
+  selectedStandId = vid; renderMarkers();
+  const v = vendors[vid]; if (v && map) map.panTo({ lat: v.lat, lng: v.lng });
+  if (sessionStats().done === sessionStats().total) { showStatus('🎉 Minden kipipálva!', 2500); renderSummary(); }
+  else { closePanel(); showStatus('✓ ' + it.name + ' → ' + vname, 2500); }
+}
+
+/* ---------- ÖSSZESÍTŐ ---------- */
+function groupByVendor(filterFn) {
+  const g = {};
+  SESSION.items.forEach(it => { if (it.done && it.buy && (!filterFn || filterFn(it))) { (g[it.buy.vendorId] = g[it.buy.vendorId] || { name: it.buy.vendorName, items: [] }).items.push(it); } });
+  return g;
+}
+function crateTotals() {
+  const t = {}; SESSION.items.forEach(it => { if (it.done && it.buy && it.buy.crateType) t[it.buy.crateType] = (t[it.buy.crateType] || 0) + Number(it.buy.crateQty || 0); });
+  return t;
+}
+function renderSummary() {
+  const g = groupByVendor(), ct = crateTotals(), pending = SESSION.items.filter(i => !i.done);
+  let total = 0, html = '<h3>📊 Összesítő</h3>';
+  Object.values(g).forEach(v => {
+    let sub = 0;
+    const rows = v.items.map(it => { const line = it.buy.price * it.buy.qty; sub += line; total += line;
+      return '<tr><td>' + escapeHtml(it.name) + '</td><td>' + fmtQty(it.buy.qty) + ' ' + escapeHtml(unitLabel(it.buy.unit)) + '</td><td>' + fmtFt(line) + '</td></tr>'; }).join('');
+    html += '<div class="vgroup"><h4>📍 ' + escapeHtml(v.name || '?') + '</h4><table class="sumtable"><tr><th>Termék</th><th>Menny.</th><th>Összeg</th></tr>' + rows +
+      '<tr><td colspan="2"><b>Részösszeg</b></td><td><b>' + fmtFt(sub) + '</b></td></tr></table></div>';
+  });
+  const crateTxt = Object.keys(ct).length ? Object.entries(ct).map(([k, q]) => q + ' ' + unitLabel(k)).join(' + ') : '—';
+  html += '<div class="stat-row"><div class="stat"><b>' + fmtFt(total) + '</b><small>összesen</small></div><div class="stat warn"><b>' + escapeHtml(crateTxt) + '</b><small>csere edényzet</small></div></div>';
+  if (pending.length) html += '<div class="stat warn" style="margin:8px 0"><small>Még nincs megvéve (' + pending.length + '):</small><br><b style="font-size:14px">' + pending.map(i => escapeHtml(i.name)).join(', ') + '</b></div>';
+  html += '<div class="mrow"><button class="go-btn ghost2" id="smBack">← Lista</button><button class="go-btn amber" id="smCollect">Összegyűjtés →</button></div>';
+  $('panelContent').innerHTML = html; openPanel();
+  $('smBack').onclick = renderChecklist;
+  $('smCollect').onclick = () => {
+    if (pending.length && !confirm(pending.length + ' tételt még nem vettetek meg. Biztosan továbblépsz az összegyűjtésre?')) return;
+    SESSION.phase = 'collect'; saveSession(); renderCollect();
+  };
+}
+
+/* ---------- ÖSSZEGYŰJTÉS-CHECKLIST (standonként) ---------- */
+function renderCollect() {
+  const g = groupByVendor(), st = sessionStats(), bought = SESSION.items.filter(i => i.done).length, pct = bought ? Math.round(st.coll * 100 / bought) : 0;
+  let html = '<h3>📦 Összegyűjtés — ' + st.coll + '/' + bought + '</h3><div class="prog"><i style="width:' + pct + '%"></i></div>';
+  Object.entries(g).forEach(([vid, v]) => {
+    const cr = {}; v.items.forEach(it => { if (it.buy.crateType) cr[it.buy.crateType] = (cr[it.buy.crateType] || 0) + Number(it.buy.crateQty || 0); });
+    const tag = Object.keys(cr).length ? '<span class="tag">🧺 vidd: ' + Object.entries(cr).map(([k, q]) => q + ' ' + unitLabel(k)).join(' + ') + '</span>' : '';
+    html += '<div class="vgroup"><h4>📍 ' + escapeHtml(v.name || '?') + tag + '</h4>' + v.items.map(it => {
+      const idx = SESSION.items.indexOf(it);
+      return '<div class="crow' + (it.collected ? ' done' : '') + '" data-i="' + idx + '">' + thumbHtml(it) + '<div class="cmain"><b>' + escapeHtml(it.name) + '</b><small>' + fmtQty(it.buy.qty) + ' ' + escapeHtml(unitLabel(it.buy.unit)) + '</small></div><div class="ccheck">✓</div></div>';
+    }).join('') + '</div>';
+  });
+  if (!Object.keys(g).length) html += '<p class="sub">Nincs megvásárolt tétel.</p>';
+  html += '<div class="mrow" style="margin-top:12px"><button class="go-btn ghost2" id="clBack">← Összesítő</button>' + (bought && st.coll === bought ? '<button class="go-btn" id="clDone">Kész, mindent összegyűjtöttünk ✓</button>' : '') + '</div>';
+  $('panelContent').innerHTML = html; openPanel();
+  $('panelContent').querySelectorAll('.crow').forEach(el => el.addEventListener('click', () => {
+    const it = SESSION.items[+el.dataset.i]; it.collected = !it.collected;
+    if (it.buy && it.buy.purchaseId) toggleCollected(it.buy.purchaseId, it.collected);
+    saveSession(); renderCollect();
+  }));
+  $('clBack').onclick = () => { SESSION.phase = 'shop'; saveSession(); renderSummary(); };
+  if ($('clDone')) $('clDone').onclick = () => { SESSION.phase = 'collected'; saveSession(); renderCollectedDone(); };
+  hydrateImages($('panelContent'));
+}
+function renderCollectedDone() {
+  const ct = crateTotals(), n = SESSION.items.filter(i => i.done).length;
+  $('panelContent').innerHTML = '<div style="text-align:center;padding:10px 0 6px"><div style="font-size:56px;animation:cardIn .6s var(--ease)">🎉</div><h3 style="margin-top:6px">Minden összegyűjtve!</h3>' +
+    '<p class="sub" style="color:var(--muted)">' + n + ' tétel vár a komissiózásra.<br>A komissiózás, szállítás és számlázás a következő fázisban érkezik.</p></div>' +
+    '<div class="mrow"><button class="go-btn ghost2" id="cdBack">← Összegyűjtés</button><button class="go-btn" id="cdHome">🏠 Kezdőlap</button></div>';
+  openPanel();
+  $('cdBack').onclick = () => { SESSION.phase = 'collect'; saveSession(); renderCollect(); };
+  $('cdHome').onclick = () => showScreen('home');
+}
+showScreen('home');
+
 </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC64dO7Vgls7acLmfsocdxMcLOSF1dO1Rw&callback=initMap" async defer></script>
