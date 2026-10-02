@@ -86,3 +86,8 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Barlow Condensed (címek, számok, gombok) + Barlow (szöveg) – jól olvasható erős napfényben is, magyar ékezetekkel.
 - Laposabb, keretes kártyák; a végtelen lebegő animációk és a kártyánkénti beúszás megszűnt, a mozgás a műveletekre (kipipálás, lenyomás, lapok) reagál; a lebegő gomb csak kétszer pulzál.
 - Erősebb kontraszt és látható fókuszkeret.
+
+## v2.5 – Windows Aero téma
+- Új megjelenés a Windows Vista/7 „Aero” stílusában: égkék háttér fénycsíkokkal, üveg (áttetsző, elmosódó) ablakkeretek fényes címsorral, világos tartalomterület.
+- Fényes, kétszínű „gloss” gombok (zöld = fő művelet, narancs = kiemelt, szürke = általános), üveggömb ikonok a kezdőképernyőn, Intéző-stílusú kijelölés, zöld üveg pipák és folyamatjelzők.
+- Betűtípus: Segoe UI (Windowson), máshol Open Sans. A korábbi árcédula-dizájn (v2.4) a git előzményekben megmaradt.
