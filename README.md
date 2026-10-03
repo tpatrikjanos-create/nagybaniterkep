@@ -131,3 +131,10 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Komissiózás: „Szállításra kész ✓ (n)” az összes kitöltött címre egyszerre; ha nincs több piszkozat: „Tovább a szállításra →”.
 - A szállításra kész címek napokon át megmaradnak, a Szállítás képernyőn bármelyik napról megjelennek („Komissiózva: dátum” jelzéssel). Kiszállított címek a kiszállítás napja után törlődnek a listáról (az archívumban megmaradnak).
 - „Cím törlése” a címszerkesztőben; szállítólevél a komissiózás dátumával; a riport a komissiózás napjához rendeli a címeket (nincs dupla számolás).
+
+## v3.3 – Címek előre, mérés alapú komissiózás, törlések
+- Bevásárlás indulása: először a címek és mennyiségek (mint a komissiózásnál), a bevásárlólista ezek összegéből áll össze; extra termékek külön adhatók hozzá. A komissiózásnál a címek kitöltve várnak.
+- Nagy zöld „Kész ✓” gomb jobb felül; a lista beillesztése visszafogott link.
+- Komissiózás/szállítólevél: nincs Ft, csak a mért mennyiség (kg/db…); riportból a forgalom/árrés kikerült.
+- Belépés felhasználónévvel (a @kiadas.local automatikus).
+- Megszakítás/törlés: mai bevásárlás törlése (listán és minden bevásárlás panelen), összes nem kiszállított cím törlése, egy cím törlése.
