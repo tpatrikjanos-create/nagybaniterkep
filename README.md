@@ -138,3 +138,9 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Komissiózás/szállítólevél: nincs Ft, csak a mért mennyiség (kg/db…); riportból a forgalom/árrés kikerült.
 - Belépés felhasználónévvel (a @kiadas.local automatikus).
 - Megszakítás/törlés: mai bevásárlás törlése (listán és minden bevásárlás panelen), összes nem kiszállított cím törlése, egy cím törlése.
+
+## v3.4 – Cím-lépés, raktár, törlések
+- Bevásárlás 1. lépés: csak a címek (név, cím, megjegyzés) – mentett partnerekre egy koppintás, új cím automatikusan mentődik partnerként; „Tovább” után jön a terméklista (mennyiségek összesen). A jobb felső gomb és a ☑ szűrő megszűnt.
+- Komissiózás után a kezdőképernyő „komissiózásra vár” kártyája eltűnik.
+- Komissiózás: „Ki nem osztott áru” – „Raktárba küldtem” (mennyiség megadható), raktár-lista, bejegyzés törölhető.
+- Komissiózott és kiszállított címek is törölhetők (cím szerkesztő, Szállítás részletek, „Kiszállított címek törlése”); a riportokból is kikerülnek.
