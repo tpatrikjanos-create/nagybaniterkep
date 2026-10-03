@@ -520,6 +520,14 @@
   #lgOffline { display: block; margin-top: 12px; color: var(--g700); font-size: 13px; }
   .acts { max-height: 58vh; overflow-y: auto; } .actrow { display: grid; grid-template-columns: 92px 74px 1fr; gap: 6px; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: 13.5px; } .actt { color: var(--muted); white-space: nowrap; font-size: 12.5px; } .actu { font-weight: 700; color: var(--g800); overflow: hidden; text-overflow: ellipsis; }
   #authLine { color: rgba(255,255,255,.95); font-size: 13px; text-align: center; text-shadow: 0 1px 2px rgba(0,30,70,.7); } #authLine a { color: #fff; }
+
+  /* ===== v3.1 KÖZÉPRE IGAZÍTOTT KEZDŐKÉPERNYŐ ===== */
+  .home-inner { min-height: 0; overflow-y: auto; justify-content: flex-start; align-items: stretch; -webkit-overflow-scrolling: touch; }
+  .home-inner > :first-child { margin-top: auto; } .home-inner > :last-child { margin-bottom: auto; }
+  .home-brand { align-self: center !important; }
+  .home-brand img { width: clamp(112px, 34vw, 140px); }
+  .home-title { text-align: center; margin: 2px 0 12px; }
+  .home-inner .big-card { flex: none; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -542,7 +550,8 @@
     <div class="home-title">Mit csinálunk<br><em>ma?</em></div>
     <button class="resume-card" id="resumeCard"><span style="font-size:30px">⏱️</span><span><b id="resumeTitle">Folyamatban lévő bevásárlás</b><small id="resumeSub"></small></span><span class="rc-arrow">›</span></button>
     <button class="big-card" id="goShop"><span class="bc-ico">🛒</span><span><b>Bevásárlás</b><small>Lista összeállítása, piac, térkép, checklist</small></span></button>
-    <button class="big-card" id="goDeliver"><span class="bc-ico">🚚</span><span><b>Kiszállítás</b><small>Komissiózás címenként, szállítólevél</small></span></button>
+    <button class="big-card" id="goDeliver"><span class="bc-ico">📦</span><span><b>Komissiózás</b><small>Címek, mennyiségek, szállítólevél</small></span></button>
+    <button class="big-card" id="goRun"><span class="bc-ico">🚚</span><span><b>Szállítás</b><small>Kiszállítás, edényzet visszavétele</small></span></button>
     <button class="big-card alt" id="goReport"><span class="bc-ico">📊</span><span><b>Riportok</b><small>Forgalom, árak, edényzet-egyenleg</small></span></button>
     <button class="big-card alt" id="goMap"><span class="bc-ico">🗺️</span><span><b>Csak térkép és árazás</b><small>Standok, árak felmérése lista nélkül</small></span></button>
     <div id="authLine"></div>
@@ -577,7 +586,7 @@
     </div>
   </div>
   <div class="ls-scroll" id="dlScroll"></div>
-  <div class="ls-bar"><div class="mrow" style="margin:0"><button class="go-btn ghost2" id="dlAdd">+ Új cím</button><button class="go-btn amber" id="dlRun">🚚 Szállítás</button></div></div>
+  <div class="ls-bar"><button class="go-btn" id="dlAdd">+ Új cím</button></div>
 </div>
 <div id="printArea"></div>
 
@@ -2512,10 +2521,10 @@ function printOrders(list) {
 
 /* ---------- ESEMÉNYEK ---------- */
 function updateDeliverSub() {
-  const el = document.querySelector('#goDeliver small'); if (!el) return;
-  const n = DAY.orders.length, r = DAY.orders.filter(o => o.status === 'ready').length;
-  const dv = DAY.orders.filter(o => o.status === 'delivered').length;
-  el.textContent = n ? n + ' cím · ' + (r + dv) + ' kész · ' + dv + ' kiszállítva' : 'Komissiózás címenként, szállítólevél';
+  const el = document.querySelector('#goDeliver small'), er = document.querySelector('#goRun small'); if (!el) return;
+  const n = DAY.orders.length, r = DAY.orders.filter(o => o.status === 'ready').length, dv = DAY.orders.filter(o => o.status === 'delivered').length;
+  el.textContent = n ? n + ' cím · ' + (r + dv) + ' kész' : 'Címek, mennyiségek, szállítólevél';
+  if (er) er.textContent = (r + dv) ? r + ' kiszállítandó · ' + dv + ' kiszállítva' : 'Kiszállítás, edényzet visszavétele';
 }
 $('goDeliver').addEventListener('click', () => showScreen('deliver'));
 $('dlBack').addEventListener('click', () => showScreen('home'));
@@ -2612,8 +2621,8 @@ function renderDebtEditor(o) {
   }));
 }
 
-$('rnBack').addEventListener('click', () => showScreen('deliver'));
-$('dlRun').addEventListener('click', () => showScreen('run'));
+$('rnBack').addEventListener('click', () => showScreen('home'));
+$('goRun').addEventListener('click', () => showScreen('run'));
 
 /* ================= v2.3 NAPI ARCHÍVUM + RIPORTOK ================= */
 let ARCH = {};

@@ -121,3 +121,7 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Alaptérkép: Esri World Imagery műhold (alapból) és OpenStreetMap utcatérkép, jobb felső sarokban váltható.
 - Változatlan működés: a piac köré korlátozott nézet, kék pont a saját pozícióval, hosszan nyomással új stand, feliratos pinek, kiemelés, kedvencek, ideiglenes standok.
 - Firebase: újra a költségkönyves projekt (`nagybani-gastro-koltsegkonyv`), a `piacTerkep/…` ágon.
+
+## v3.1 – Külön menüpontok
+- A kezdőképernyőn külön menüpont a Bevásárlás, a Komissiózás és a Szállítás (+ Riportok, Csak térkép); a Szállítás képernyő önállóan nyílik, mutatja a kiszállítandó/kiszállított címek számát.
+- A Nagybani Gastro logó és a cím középre igazítva; kis képernyőn a menü görgethető.
