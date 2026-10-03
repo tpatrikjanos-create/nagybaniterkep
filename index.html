@@ -617,14 +617,16 @@
 <script>
 /* ====== BEÁLLÍTÁSOK ====== */
 const firebaseConfig = {
-  apiKey: "IDE_A_FIREBASE_API_KEY",
-  authDomain: "IDE_A_PROJEKT.firebaseapp.com",
-  databaseURL: "https://IDE_A_PROJEKT-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "IDE_A_PROJEKT",
-  storageBucket: "IDE_A_PROJEKT.appspot.com",
-  messagingSenderId: "IDE_A_SENDER_ID",
-  appId: "IDE_AZ_APP_ID"
+  apiKey: "AIzaSyD78fzP_pgMlNOkca23_KjkZ3lEfHMzokU",
+  authDomain: "nagybani-gastro-koltsegkonyv.firebaseapp.com",
+  databaseURL: "https://nagybani-gastro-koltsegkonyv-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "nagybani-gastro-koltsegkonyv",
+  storageBucket: "nagybani-gastro-koltsegkonyv.firebasestorage.app",
+  messagingSenderId: "713156211231",
+  appId: "1:713156211231:web:102100b0fe192575e2db2a"
 };
+// Ez az adatbázis közös a költségkönyv alkalmazással – a piaci térkép minden adata a saját ágán (piacTerkep/…) él, hogy ne ütközzön vele.
+const FB_ROOT = 'piacTerkep';
 
 const MARKET_CENTER = { lat: 47.414838, lng: 19.168016 }; // Budapesti Nagybani Piac, Nagykőrösi út
 const MARKET_ZOOM = 19;
@@ -736,7 +738,8 @@ function initFirebase() {
       return;
     }
     firebase.initializeApp(firebaseConfig);
-    db = firebase.database();
+    const fbDb = firebase.database();
+    db = { ref: (p) => fbDb.ref(FB_ROOT + '/' + p) };
     firebaseReady = true;
     listenVendors();
     listenPurchases();
@@ -751,6 +754,9 @@ function listenVendors() {
   db.ref('vendors').on('value', snap => {
     vendors = snap.val() || {};
     renderMarkers();
+  }, err => {
+    console.error(err);
+    showStatus('⚠️ Firebase: nincs jogosultság az adatbázishoz – ellenőrizd a Realtime Database szabályait (Rules).', 9000);
   });
 }
 

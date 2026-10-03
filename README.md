@@ -98,3 +98,8 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 
 ## v2.7 – Logó
 - A Nagybani Gastro logó a kezdőképernyőn (kerek, üveg-fénnyel), a szállítólevél fejlécében, valamint böngésző-ikonként / kezdőképernyő-ikonként (apple-touch-icon) is megjelenik. A kép a fájlba van ágyazva, hálózat nélkül is látszik.
+
+## v2.8 – Firebase bekötve
+- A `firebaseConfig` a „nagybani-gastro-koltsegkonyv” projektre mutat (közös adatbázis a költségkönyv alkalmazással).
+- Az app minden adata a saját `piacTerkep/…` ágon él (vendors, purchases, priceEntries, shopSession, deliveryDay, addressBook, archive), így nem keveredik a költségkönyv adataival.
+- Jogosultsági hiba esetén (Rules) látható figyelmeztetés jelenik meg.
