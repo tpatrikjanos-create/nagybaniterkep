@@ -115,3 +115,9 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 
 ## v2.11 – Saját Firebase projekt
 - Az app saját Firebase projektet használ (`gastroapp-36e58`), nem osztozik a költségkönyvvel. A felhasználókat az Authentication → Users résznél kell felvenni (email + jelszó), a Rules-ban a `piacTerkep` ágat kell engedni a bejelentkezetteknek.
+
+## v3.0 – Leaflet térkép (Google nélkül)
+- A Google Maps lecserélve Leafletre: nincs API-kulcs, nincs számlázás, nincs „for development purposes only” vízjel.
+- Alaptérkép: Esri World Imagery műhold (alapból) és OpenStreetMap utcatérkép, jobb felső sarokban váltható.
+- Változatlan működés: a piac köré korlátozott nézet, kék pont a saját pozícióval, hosszan nyomással új stand, feliratos pinek, kiemelés, kedvencek, ideiglenes standok.
+- Firebase: újra a költségkönyves projekt (`nagybani-gastro-koltsegkonyv`), a `piacTerkep/…` ágon.
