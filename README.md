@@ -144,3 +144,8 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Komissiózás után a kezdőképernyő „komissiózásra vár” kártyája eltűnik.
 - Komissiózás: „Ki nem osztott áru” – „Raktárba küldtem” (mennyiség megadható), raktár-lista, bejegyzés törölhető.
 - Komissiózott és kiszállított címek is törölhetők (cím szerkesztő, Szállítás részletek, „Kiszállított címek törlése”); a riportokból is kikerülnek.
+
+## v3.5 – Eladási ár és árrés a bevásárlásnál
+- A kiválasztott terméknél látszik az összesen vásárlandó mennyiség, és megadható az eladási ár (Ft/egység); az ár megjegyződik a következő napra is.
+- Kipipáláskor élő árrés (Ft és %) a beszerzési ár alapján; a bevásárlás-listában és az összesítőben (várható árrés) is látszik.
+- A térképen a stand árlistájában a rögzített ár mellett az árrés is megjelenik, ahol az eladási ár ismert.

@@ -530,6 +530,9 @@
   .home-inner .big-card { flex: none; }
   #listScreen[data-mode=addr] .ls-search, #listScreen[data-mode=addr] .chips, #listScreen[data-mode=addr] #lsScroll, #listScreen[data-mode=addr] #lsBarItems { display: none; }
   #listScreen[data-mode=items] #lsAddrStep, #listScreen[data-mode=items] #lsBarAddr { display: none; }
+  .pctrl { flex-wrap: wrap; } .pctrl .prow { display: flex; gap: 3px; width: 100%; } .pctrl .plab { width: 100%; font-size: 12px; color: var(--muted); margin: 3px 0 2px; text-align: center; }
+  .pctrl .psell { width: 100%; font-size: 13px; border-color: #e0a526; background: #fffaf0; }
+  .mg { font-weight: 800; font-size: 12.5px; } .mg.pos { color: #1f7a1f; } .mg.neg { color: #c62828; }
   .whc { background: #fff8e1; border: 1px solid #e8c766; border-radius: 6px; padding: 10px 12px; margin: 10px 0; }
   .whc h4 { margin: 0 0 6px; color: #6b4a00; } .whr { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 0; font-size: 14px; }
   .whr button { border: 1px solid #a8700a; border-radius: 4px; background: linear-gradient(180deg,#ffe9a0,#ffc84a); color: #3d2a00; font-weight: 700; padding: 6px 10px; cursor: pointer; }
@@ -1354,7 +1357,7 @@ function openVendorPanel(id) {
   loadVendorEntries(id).then(entries => {
     entries.sort((a, b) => b.timestamp - a.timestamp);
     let rows = entries.map(e =>
-      '<tr><td>' + e.date + '</td><td>' + escapeHtml(e.item) + '</td><td>' + e.price + ' Ft/' + unitLabel(e.unit) + '</td></tr>'
+      '<tr><td>' + e.date + '</td><td>' + escapeHtml(e.item) + '</td><td>' + e.price + ' Ft/' + unitLabel(e.unit) + (sellForName(e.item) ? '<br>' + marginTxt(sellForName(e.item), Number(e.price)) : '') + '</td></tr>'
     ).join('');
     if (!rows) rows = '<tr><td colspan="3">Még nincs rögzített árazás ennél a standnál.</td></tr>';
 
@@ -1913,7 +1916,16 @@ function addOrMergeItem(pid, qty, unit) {
   qty = Math.round(qty * 100) / 100; unit = unit || p.unit;
   const ex = findItem(pid);
   if (ex) { if (ex.unit === unit) ex.extra = Math.round(((ex.extra || 0) + qty) * 100) / 100; else { ex.extra = qty; ex.ord = 0; ex.unit = unit; } recalcItem(ex); }
-  else SESSION.items.push({ pid, name: p.name, cat: p.cat, unit, qty, ord: 0, extra: qty, done: false, buy: null, collected: false });
+  else SESSION.items.push({ pid, name: p.name, cat: p.cat, unit, qty, ord: 0, extra: qty, sell: SELL[pid] > 0 ? Number(SELL[pid]) : '', done: false, buy: null, collected: false });
+}
+let SELL = {};
+try { SELL = JSON.parse(localStorage.getItem('piaci_sell') || '{}') || {}; } catch (e) { SELL = {}; }
+function setSell(pid, v) { SELL[pid] = v; try { localStorage.setItem('piaci_sell', JSON.stringify(SELL)); } catch (e) { /* ignore */ } if (firebaseReady) db.ref('sellPrices/' + pid).set(v); }
+function sellForName(name) { const q = normText(name), p = CATALOG.find(x => normText(x.name) === q || x.n === q); return p && SELL[p.id] > 0 ? Number(SELL[p.id]) : 0; }
+function marginTxt(sell, price) {
+  if (!(sell > 0) || !(price >= 0)) return '';
+  const m = sell - price, pc = Math.round(m * 100 / sell);
+  return '<span class="mg ' + (m < 0 ? 'neg' : 'pos') + '">' + (m >= 0 ? '+' : '−') + Math.abs(Math.round(m)) + ' Ft/egys. (' + pc + '%)</span>';
 }
 function recalcItem(it) { it.qty = Math.round(((it.ord || 0) + (it.extra || 0)) * 100) / 100; }
 
@@ -1992,7 +2004,9 @@ function updateCard(pid) {
   const it = findItem(pid), ctrl = el.querySelector('.pctrl');
   if (!it) { el.classList.remove('selected'); ctrl.innerHTML = ''; return; }
   el.classList.add('selected');
-  ctrl.innerHTML = '<button data-act="dec" aria-label="kevesebb">−</button><input type="number" inputmode="decimal" step="any" min="0" value="' + it.qty + '"><button data-act="inc" aria-label="több">+</button>';
+  ctrl.innerHTML = '<div class="prow"><button data-act="dec" aria-label="kevesebb">−</button><input type="number" inputmode="decimal" step="any" min="0" value="' + it.qty + '" aria-label="vásárlandó mennyiség"><button data-act="inc" aria-label="több">+</button></div>' +
+    '<div class="plab">Venni: <b>' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + '</b>' + (it.sell > 0 ? ' · eladás: <b>' + fmtQty(it.sell) + ' Ft/' + escapeHtml(unitLabel(it.unit)) + '</b>' : '') + '</div>' +
+    '<input type="number" class="psell" inputmode="decimal" step="any" min="0" placeholder="Eladási ár Ft/' + escapeHtml(unitLabel(it.unit)) + '" value="' + (it.sell > 0 ? it.sell : '') + '">';
 }
 function renderCatalog() {
   const q = normText($('lsSearch').value), wrap = $('catalogWrap'); let html = '', n = 0;
@@ -2037,6 +2051,9 @@ $('catalogWrap').addEventListener('click', (e) => {
 $('catalogWrap').addEventListener('change', (e) => {
   if (!e.target.matches('.pctrl input')) return;
   const pid = e.target.closest('.pcard').dataset.pid, it = findItem(pid); if (!it) return;
+  if (e.target.classList.contains('psell')) {
+    const sv = parseFloat(String(e.target.value).replace(',', '.')); it.sell = sv > 0 ? sv : ''; setSell(pid, it.sell); saveSession(); return;
+  }
   const v = parseFloat(String(e.target.value).replace(',', '.'));
   it.extra = v > 0 ? Math.max(0, Math.round((v - (it.ord || 0)) * 100) / 100) : 0;
   if (!(it.ord > 0) && it.extra <= 0) SESSION.items = SESSION.items.filter(i => i.pid !== pid); else recalcItem(it);
@@ -2165,9 +2182,9 @@ function renderChecklist() {
   const st = sessionStats(), pct = st.total ? Math.round(st.done * 100 / st.total) : 0;
   const rows = SESSION.items.map((it, idx) => {
     const b = it.buy;
-    const sub = it.done && b ? '<small class="cdone">✓ ' + escapeHtml(b.vendorName || '?') + ' · ' + fmtQty(b.price) + ' Ft/' + escapeHtml(unitLabel(b.unit)) + (b.crateType ? ' · ' + b.crateQty + ' ' + unitLabel(b.crateType) + ' csere' : '') + '</small>' : '';
+    const sub = it.done && b ? '<small class="cdone">✓ ' + escapeHtml(b.vendorName || '?') + ' · ' + fmtQty(b.price) + ' Ft/' + escapeHtml(unitLabel(b.unit)) + (b.crateType ? ' · ' + b.crateQty + ' ' + unitLabel(b.crateType) + ' csere' : '') + (it.sell > 0 && toUnitKey(b.unit) === toUnitKey(it.unit) ? ' · ' + marginTxt(it.sell, b.price) : '') + '</small>' : '';
     return '<div class="crow' + (it.done ? ' done' : '') + '" data-i="' + idx + '" style="animation-delay:' + Math.min(idx, 12) * 25 + 'ms">' + thumbHtml(it) +
-      '<div class="cmain"><b>' + escapeHtml(it.name) + '</b><small>' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + '</small>' + sub + '</div><div class="ccheck">✓</div></div>';
+      '<div class="cmain"><b>' + escapeHtml(it.name) + '</b><small>' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + (it.sell > 0 ? ' · eladás: ' + fmtQty(it.sell) + ' Ft' : '') + '</small>' + sub + '</div><div class="ccheck">✓</div></div>';
   }).join('');
   $('panelContent').innerHTML = '<h3>🛒 Bevásárlás — ' + st.done + '/' + st.total + '</h3><div class="prog"><i style="width:' + pct + '%"></i></div>' + rows +
     '<div class="mrow" style="margin-top:12px"><button class="go-btn ghost2" id="ckAddMore">+ Termék hozzáadása</button>' +
@@ -2193,12 +2210,18 @@ function openBuyForm(idx) {
   $('panelContent').innerHTML = '<h3>' + (it.done ? '✏️ Módosítás' : '✅ Kipipálás') + ' — ' + escapeHtml(it.name) + '</h3><small style="color:var(--muted)">Tervezett: ' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + '</small>' +
     '<span class="flabel">Hol vettük?</span><div id="bfVendors">' + radios + '</div>' +
     '<span class="flabel">Ár</span><div class="row"><input type="number" id="bfPrice" inputmode="decimal" step="any" min="0" placeholder="Ft" value="' + (prev ? prev.price : '') + '" style="flex:1"><select id="bfUnit" style="width:110px">' + unitSelectHtml(pu).replace(/value="lada"/, 'value="lada"') + '</select></div>' +
+    '<span class="flabel">Eladási ár (Ft / egység) <span id="bfMargin" style="float:right"></span></span><div class="row"><input type="number" id="bfSell" inputmode="decimal" step="any" min="0" placeholder="amennyiért továbbadjuk" value="' + (it.sell > 0 ? it.sell : '') + '" style="width:100%"></div>' +
     '<span class="flabel">Mennyiség (<span id="bfUnitLbl">' + escapeHtml(unitLabel(pu)) + '</span>)</span><div class="row"><input type="number" id="bfQty" inputmode="decimal" step="any" min="0" value="' + defQty + '" style="width:100%"></div>' +
     '<span class="flabel">Csere edényzet</span><div class="row"><select id="bfCrate" style="flex:1"><option value="">Nincs</option><option value="rekesz"' + (prev && prev.crateType === 'rekesz' ? ' selected' : '') + '>Rekesz</option><option value="lada"' + (prev && prev.crateType === 'lada' ? ' selected' : '') + '>Láda</option></select>' +
     '<input type="number" id="bfCrateQty" inputmode="numeric" min="0" step="1" placeholder="db" value="' + (prev && prev.crateQty ? prev.crateQty : '') + '" style="width:90px"></div>' +
     '<div class="mrow" style="margin-top:16px"><button class="go-btn ghost2" id="bfCancel">Mégse</button><button class="go-btn" id="bfOk">' + (it.done ? 'Mentés' : 'Kipipálom ✓') + '</button></div>';
   $('bfVendors').addEventListener('change', () => { const n = document.querySelector('input[name=bfVendor]:checked'); $('bfNewName').style.display = n && n.value === '__new__' ? 'block' : 'none'; });
-  $('bfUnit').addEventListener('change', () => { $('bfUnitLbl').textContent = unitLabel($('bfUnit').value); });
+  $('bfUnit').addEventListener('change', () => { $('bfUnitLbl').textContent = unitLabel($('bfUnit').value); calcMargin(); });
+  const calcMargin = () => {
+    const sv = parseFloat(String($('bfSell').value).replace(',', '.')), pv = parseFloat(String($('bfPrice').value).replace(',', '.'));
+    $('bfMargin').innerHTML = (toUnitKey($('bfUnit').value) === toUnitKey(it.unit)) ? marginTxt(sv, pv) : '';
+  };
+  $('bfPrice').addEventListener('input', calcMargin); $('bfSell').addEventListener('input', calcMargin); calcMargin();
   $('bfCancel').onclick = renderChecklist;
   $('bfOk').onclick = () => confirmBuy(idx);
   openPanel();
@@ -2231,6 +2254,7 @@ function confirmBuy(idx) {
   if (purchaseId) updatePurchase(purchaseId, { vendorId: vid, vendorName: vname, price, unit, quantity: qty, crateType, crateQty });
   else purchaseId = savePurchase(vid, it.name, price, qty, unit, crateType, crateQty, todayStr(), true);
   logActivity('Kipipálva: ' + it.name + ' — ' + vname + ' ' + price + ' Ft/' + unit);
+  const sellV = parseFloat(String($('bfSell').value).replace(',', '.')); it.sell = sellV > 0 ? sellV : ''; if (it.sell) setSell(it.pid, it.sell);
   it.done = true; it.buy = { vendorId: vid, vendorName: vname, price, unit, qty, crateType, crateQty, purchaseId, ts: Date.now(), by: who() };
   saveSession();
   selectedStandId = vid; renderMarkers();
@@ -2259,8 +2283,9 @@ function renderSummary() {
     html += '<div class="vgroup"><h4>📍 ' + escapeHtml(v.name || '?') + '</h4><table class="sumtable"><tr><th>Termék</th><th>Menny.</th><th>Összeg</th></tr>' + rows +
       '<tr><td colspan="2"><b>Részösszeg</b></td><td><b>' + fmtFt(sub) + '</b></td></tr></table></div>';
   });
+  let rev = 0, costS = 0; SESSION.items.forEach(it => { if (it.done && it.buy && it.sell > 0 && toUnitKey(it.buy.unit) === toUnitKey(it.unit)) { rev += it.sell * it.buy.qty; costS += it.buy.price * it.buy.qty; } });
   const crateTxt = Object.keys(ct).length ? Object.entries(ct).map(([k, q]) => q + ' ' + unitLabel(k)).join(' + ') : '—';
-  html += '<div class="stat-row"><div class="stat"><b>' + fmtFt(total) + '</b><small>összesen</small></div><div class="stat warn"><b>' + escapeHtml(crateTxt) + '</b><small>csere edényzet</small></div></div>';
+  html += '<div class="stat-row"><div class="stat"><b>' + fmtFt(total) + '</b><small>összesen</small></div>' + (rev > 0 ? '<div class="stat"><b>' + fmtFt(rev - costS) + '</b><small>várható árrés</small></div>' : '') + '<div class="stat warn"><b>' + escapeHtml(crateTxt) + '</b><small>csere edényzet</small></div></div>';
   if (pending.length) html += '<div class="stat warn" style="margin:8px 0"><small>Még nincs megvéve (' + pending.length + '):</small><br><b style="font-size:14px">' + pending.map(i => escapeHtml(i.name)).join(', ') + '</b></div>';
   html += '<div class="mrow"><button class="go-btn ghost2" id="smBack">← Lista</button><button class="go-btn amber" id="smCollect">Összegyűjtés →</button></div>';
   $('panelContent').innerHTML = html; openPanel();
@@ -2702,7 +2727,7 @@ function openPicker(i) {
       let qty = 1;
       if (sess && sess.buy && toUnitKey(sess.buy.unit) === toUnitKey(unit)) { const left = Math.round((sess.buy.qty - allocated(p.id, toUnitKey(unit), o)) * 100) / 100; qty = left > 0 ? left : 1; }
       else if (sess) qty = sess.qty;
-      o.items.push({ pid: p.id, name: p.name, unit, qty, price: p.price || 0 });
+      o.items.push({ pid: p.id, name: p.name, unit, qty, price: SELL[p.id] > 0 ? Number(SELL[p.id]) : (p.price || 0) });
       saveDay(); const h = modalHook; openOrder(i); modalHook = h || modalHook;
     });
   };
