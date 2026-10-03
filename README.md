@@ -125,3 +125,9 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 ## v3.1 – Külön menüpontok
 - A kezdőképernyőn külön menüpont a Bevásárlás, a Komissiózás és a Szállítás (+ Riportok, Csak térkép); a Szállítás képernyő önállóan nyílik, mutatja a kiszállítandó/kiszállított címek számát.
 - A Nagybani Gastro logó és a cím középre igazítva; kis képernyőn a menü görgethető.
+
+## v3.2 – Munkafolyamat: bevásárlás → komissiózás → szállítás
+- Bevásárlás végén „Tovább a komissiózásra →”.
+- Komissiózás: „Szállításra kész ✓ (n)” az összes kitöltött címre egyszerre; ha nincs több piszkozat: „Tovább a szállításra →”.
+- A szállításra kész címek napokon át megmaradnak, a Szállítás képernyőn bármelyik napról megjelennek („Komissiózva: dátum” jelzéssel). Kiszállított címek a kiszállítás napja után törlődnek a listáról (az archívumban megmaradnak).
+- „Cím törlése” a címszerkesztőben; szállítólevél a komissiózás dátumával; a riport a komissiózás napjához rendeli a címeket (nincs dupla számolás).
