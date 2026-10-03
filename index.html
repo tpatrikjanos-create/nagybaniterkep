@@ -515,6 +515,7 @@
   .login-card input { width: 100%; margin-bottom: 8px; padding: 12px; font-size: 16px; border-radius: 3px; border: 1px solid #8ea6c0; border-top-color: #6d87a6; background: #fff; box-shadow: inset 0 1px 2px rgba(0,40,90,.18); }
   .login-card input:focus { outline: none; border-color: #3399ff; box-shadow: 0 0 0 2px rgba(51,153,255,.4); }
   .login-card .go-btn { margin-top: 6px; } #lgErr { color: var(--tomato); font-size: 13.5px; font-weight: 600; min-height: 4px; margin: 2px 0 4px; }
+  .login-card .lgwait { display: none; padding: 18px 0 22px; color: var(--muted); } #loginScreen.checking .lgwait { display: block; } #loginScreen.checking .lgform { display: none; }
   #lgOffline { display: block; margin-top: 12px; color: var(--g700); font-size: 13px; }
   .acts { max-height: 58vh; overflow-y: auto; } .actrow { display: grid; grid-template-columns: 92px 74px 1fr; gap: 6px; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: 13.5px; } .actt { color: var(--muted); white-space: nowrap; font-size: 12.5px; } .actu { font-weight: 700; color: var(--g800); overflow: hidden; text-overflow: ellipsis; }
   #authLine { color: rgba(255,255,255,.95); font-size: 13px; text-align: center; text-shadow: 0 1px 2px rgba(0,30,70,.7); } #authLine a { color: #fff; }
@@ -602,17 +603,18 @@
   <div class="ls-scroll" id="rpScroll"></div>
 </div>
 
-<div id="loginScreen">
+<div id="loginScreen" class="show checking">
   <div class="login-card">
     <img id="loginLogo" alt="Nagybani Gastro">
     <h3>Bejelentkezés</h3>
-    <p>Ugyanazzal a fiókkal lépj be, mint a költségkönyvbe.</p>
-    <input type="email" id="lgEmail" placeholder="Email" autocomplete="username">
-    <input type="password" id="lgPass" placeholder="Jelszó" autocomplete="current-password">
-    <div id="lgErr"></div>
-    <button class="go-btn" id="lgGo">Belépés</button>
-    <button class="go-btn ghost2" id="lgGoogle">Belépés Google-fiókkal</button>
-    <a href="#" id="lgOffline">Folytatom bejelentkezés nélkül (csak ezen az eszközön)</a>
+    <div class="lgwait">Kapcsolódás…</div>
+    <div class="lgform">
+      <p>Ugyanazzal a fiókkal lépj be, mint a költségkönyvbe.</p>
+      <input type="email" id="lgEmail" placeholder="Email" autocomplete="username">
+      <input type="password" id="lgPass" placeholder="Jelszó" autocomplete="current-password">
+      <div id="lgErr"></div>
+      <button class="go-btn" id="lgGo">Belépés</button>
+    </div>
   </div>
 </div>
 <div id="modal"><div class="modal-card" id="modalCard"></div></div>
@@ -802,10 +804,14 @@ function findSpellingSuggestion(item) {
 }
 
 /* ====== FIREBASE INIT ====== */
+let fbStarted = false;
 function initFirebase() {
+  if (fbStarted) return;
+  fbStarted = true;
   try {
     if (firebaseConfig.apiKey === "IDE_A_FIREBASE_API_KEY") {
-      showStatus("⚠️ Firebase nincs beállítva - csak helyi (offline) mód aktív", 5000);
+      document.getElementById('loginScreen').classList.remove('checking'); document.getElementById('lgErr').textContent = 'A Firebase nincs beállítva.';
+      showStatus("⚠️ Firebase nincs beállítva", 5000);
       return;
     }
     firebase.initializeApp(firebaseConfig);
@@ -813,6 +819,7 @@ function initFirebase() {
     db = { ref: (p) => fbDb.ref(FB_ROOT + '/' + p) };
     // a közös adatbázis bejelentkezéshez kötött: előbb be kell lépni, utána indul a szinkron
     firebase.auth().onAuthStateChanged(user => {
+      document.getElementById('loginScreen').classList.remove('checking');
       if (user) onSignedIn(user); else { firebaseReady = false; showLogin(); }
     });
   } catch (e) {
@@ -825,7 +832,7 @@ function listenVendors() {
   if (!db) return;
   db.ref('vendors').on('value', snap => {
     vendors = snap.val() || {};
-    renderMarkers();
+    if (map) renderMarkers();
   }, err => {
     console.error(err);
     showStatus('⚠️ Firebase: nincs jogosultság az adatbázishoz – ellenőrizd a Realtime Database szabályait (Rules).', 9000);
@@ -841,7 +848,10 @@ function listenPurchases() {
 }
 
 /* ====== TÉRKÉP ====== */
+window.addEventListener('load', () => setTimeout(() => { if (!fbStarted && typeof firebase !== 'undefined') initFirebase(); }, 3000));
+let loginReady = false;
 function setupLogin() {
+  if (loginReady) return; loginReady = true;
   const logo = document.getElementById('homeLogo'); if (logo) document.getElementById('loginLogo').src = logo.src;
   const err = (m) => { document.getElementById('lgErr').textContent = m || ''; };
   const go = () => {
@@ -852,8 +862,8 @@ function setupLogin() {
   };
   document.getElementById('lgGo').onclick = go;
   document.getElementById('lgPass').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') go(); });
-  document.getElementById('lgGoogle').onclick = () => { err(''); firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(x => err(authErr(x))); };
-  document.getElementById('lgOffline').onclick = (ev) => { ev.preventDefault(); hideLogin(); showStatus('Helyi mód: az adatok csak ezen az eszközön maradnak.', 4000); };
+  // ha 7 mp alatt nem sikerül kapcsolódni, mutatjuk az űrlapot és a hibát
+  setTimeout(() => { const l = document.getElementById('loginScreen'); if (l && l.classList.contains('checking')) { l.classList.remove('checking'); err('Nincs kapcsolat a szerverrel. Ellenőrizd a hálózatot, majd frissítsd az oldalt.'); } }, 7000);
 }
 
 function initMap() {
@@ -2729,6 +2739,7 @@ $('rpChips').addEventListener('click', (e) => {
 });
 archiveToday();
 
+setupLogin();
 showScreen('home');
 
 </script>

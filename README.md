@@ -108,3 +108,7 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Firebase Authentication (email + jelszó, vagy Google-fiók): a közös projekt felhasználóival lehet belépni. Belépés nélkül „helyi mód” is van (az adat csak az eszközön marad).
 - Minden új rögzítés (stand, árazás, vásárlás, kipipálás) tárolja, ki csinálta (`by`); a szállítás állapotváltásait is.
 - „Napló” (kezdőképernyő alján, bejelentkezve): időrendben, ki mit csinált (Firebase `piacTerkep/activity`).
+
+## v2.10 – Kötelező bejelentkezés
+- Csak a költségkönyv profiljaival lehet belépni (email + jelszó); a Google-belépés és a „bejelentkezés nélkül” mód megszűnt.
+- A bejelentkezési képernyő minden más előtt megjelenik (a térkép betöltésétől függetlenül); ha 7 mp alatt nincs kapcsolat, hibát mutat.
