@@ -609,7 +609,7 @@
     <h3>Bejelentkezés</h3>
     <div class="lgwait">Kapcsolódás…</div>
     <div class="lgform">
-      <p>Ugyanazzal a fiókkal lépj be, mint a költségkönyvbe.</p>
+      <p>Lépj be a céges fiókoddal.</p>
       <input type="email" id="lgEmail" placeholder="Email" autocomplete="username">
       <input type="password" id="lgPass" placeholder="Jelszó" autocomplete="current-password">
       <div id="lgErr"></div>
@@ -647,15 +647,15 @@
 <script>
 /* ====== BEÁLLÍTÁSOK ====== */
 const firebaseConfig = {
-  apiKey: "AIzaSyD78fzP_pgMlNOkca23_KjkZ3lEfHMzokU",
-  authDomain: "nagybani-gastro-koltsegkonyv.firebaseapp.com",
-  databaseURL: "https://nagybani-gastro-koltsegkonyv-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "nagybani-gastro-koltsegkonyv",
-  storageBucket: "nagybani-gastro-koltsegkonyv.firebasestorage.app",
-  messagingSenderId: "713156211231",
-  appId: "1:713156211231:web:102100b0fe192575e2db2a"
+  apiKey: "AIzaSyCQQaPWNdOl3ArakFkdCqu3wJbewH4OGAY",
+  authDomain: "gastroapp-36e58.firebaseapp.com",
+  databaseURL: "https://gastroapp-36e58-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "gastroapp-36e58",
+  storageBucket: "gastroapp-36e58.firebasestorage.app",
+  messagingSenderId: "1015519012683",
+  appId: "1:1015519012683:web:ca32f16225e930ab062ace"
 };
-// Ez az adatbázis közös a költségkönyv alkalmazással – a piaci térkép minden adata a saját ágán (piacTerkep/…) él, hogy ne ütközzön vele.
+// A piaci térkép saját Firebase projektet használ (gastroapp-36e58); az adatok a piacTerkep/… ágon vannak.
 const FB_ROOT = 'piacTerkep';
 
 const MARKET_CENTER = { lat: 47.414838, lng: 19.168016 }; // Budapesti Nagybani Piac, Nagykőrösi út

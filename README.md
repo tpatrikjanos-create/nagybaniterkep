@@ -112,3 +112,6 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 ## v2.10 – Kötelező bejelentkezés
 - Csak a költségkönyv profiljaival lehet belépni (email + jelszó); a Google-belépés és a „bejelentkezés nélkül” mód megszűnt.
 - A bejelentkezési képernyő minden más előtt megjelenik (a térkép betöltésétől függetlenül); ha 7 mp alatt nincs kapcsolat, hibát mutat.
+
+## v2.11 – Saját Firebase projekt
+- Az app saját Firebase projektet használ (`gastroapp-36e58`), nem osztozik a költségkönyvvel. A felhasználókat az Authentication → Users résznél kell felvenni (email + jelszó), a Rules-ban a `piacTerkep` ágat kell engedni a bejelentkezetteknek.
