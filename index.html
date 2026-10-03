@@ -504,6 +504,20 @@
   .home-brand img { display: block; width: clamp(104px, 30vw, 132px); height: auto; aspect-ratio: 1; border-radius: 50%; border: 3px solid rgba(255,255,255,.85); background: #fff;
     box-shadow: 0 0 0 5px rgba(255,255,255,.22), 0 8px 22px rgba(0,30,70,.5), 0 0 28px rgba(130,210,255,.55); }
   @media print { html, body { background: #fff !important; } .inv .brandrow { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; } .inv .brandrow img { width: 22mm; height: 22mm; border-radius: 50%; } }
+
+  /* ===== v2.9 BEJELENTKEZÉS ===== */
+  #loginScreen { position: fixed; inset: 0; z-index: 120; display: none; align-items: center; justify-content: center; padding: 16px; background: var(--wall); }
+  #loginScreen.show { display: flex; }
+  .login-card { width: 100%; max-width: 380px; background: linear-gradient(180deg, rgba(255,255,255,.94), rgba(236,244,252,.92)); border: 1px solid rgba(255,255,255,.85); border-radius: 10px; padding: 20px 18px 16px; text-align: center;
+    box-shadow: 0 0 0 5px rgba(255,255,255,.25), 0 14px 40px rgba(0,30,70,.5); }
+  .login-card img { width: 96px; height: 96px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 2px 10px rgba(0,30,70,.4); margin-top: -62px; background: #fff; }
+  .login-card h3 { margin: 8px 0 2px; font-size: 22px; font-weight: 400; color: #1e395b; } .login-card p { margin: 0 0 12px; color: var(--muted); font-size: 13.5px; }
+  .login-card input { width: 100%; margin-bottom: 8px; padding: 12px; font-size: 16px; border-radius: 3px; border: 1px solid #8ea6c0; border-top-color: #6d87a6; background: #fff; box-shadow: inset 0 1px 2px rgba(0,40,90,.18); }
+  .login-card input:focus { outline: none; border-color: #3399ff; box-shadow: 0 0 0 2px rgba(51,153,255,.4); }
+  .login-card .go-btn { margin-top: 6px; } #lgErr { color: var(--tomato); font-size: 13.5px; font-weight: 600; min-height: 4px; margin: 2px 0 4px; }
+  #lgOffline { display: block; margin-top: 12px; color: var(--g700); font-size: 13px; }
+  .acts { max-height: 58vh; overflow-y: auto; } .actrow { display: grid; grid-template-columns: 92px 74px 1fr; gap: 6px; padding: 7px 2px; border-bottom: 1px solid var(--line); font-size: 13.5px; } .actt { color: var(--muted); white-space: nowrap; font-size: 12.5px; } .actu { font-weight: 700; color: var(--g800); overflow: hidden; text-overflow: ellipsis; }
+  #authLine { color: rgba(255,255,255,.95); font-size: 13px; text-align: center; text-shadow: 0 1px 2px rgba(0,30,70,.7); } #authLine a { color: #fff; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -527,6 +541,7 @@
     <button class="big-card" id="goDeliver"><span class="bc-ico">🚚</span><span><b>Kiszállítás</b><small>Komissiózás címenként, szállítólevél</small></span></button>
     <button class="big-card alt" id="goReport"><span class="bc-ico">📊</span><span><b>Riportok</b><small>Forgalom, árak, edényzet-egyenleg</small></span></button>
     <button class="big-card alt" id="goMap"><span class="bc-ico">🗺️</span><span><b>Csak térkép és árazás</b><small>Standok, árak felmérése lista nélkül</small></span></button>
+    <div id="authLine"></div>
   </div>
 </div>
 
@@ -587,6 +602,19 @@
   <div class="ls-scroll" id="rpScroll"></div>
 </div>
 
+<div id="loginScreen">
+  <div class="login-card">
+    <img id="loginLogo" alt="Nagybani Gastro">
+    <h3>Bejelentkezés</h3>
+    <p>Ugyanazzal a fiókkal lépj be, mint a költségkönyvbe.</p>
+    <input type="email" id="lgEmail" placeholder="Email" autocomplete="username">
+    <input type="password" id="lgPass" placeholder="Jelszó" autocomplete="current-password">
+    <div id="lgErr"></div>
+    <button class="go-btn" id="lgGo">Belépés</button>
+    <button class="go-btn ghost2" id="lgGoogle">Belépés Google-fiókkal</button>
+    <a href="#" id="lgOffline">Folytatom bejelentkezés nélkül (csak ezen az eszközön)</a>
+  </div>
+</div>
 <div id="modal"><div class="modal-card" id="modalCard"></div></div>
 
 <button id="shopFab"></button>
@@ -645,6 +673,49 @@ let vendors = {};
 let markers = {};
 let purchasesCache = {};
 let db = null;
+let fbListening = false;
+function who() { return window.CURRENT_USER || 'helyi'; }
+let ACT = []; try { ACT = JSON.parse(localStorage.getItem('piaci_act') || '[]') || []; } catch (e) { ACT = []; }
+function logActivity(text) {
+  const a = { ts: Date.now(), user: who(), text: String(text).slice(0, 200) };
+  ACT.unshift(a); ACT = ACT.slice(0, 300);
+  try { localStorage.setItem('piaci_act', JSON.stringify(ACT)); } catch (e) { /* ignore */ }
+  try { if (firebaseReady && db) db.ref('activity').push(a); } catch (e) { /* ignore */ }
+}
+function showActivity() {
+  const draw = (list) => {
+    const rows = list.map(a => { const d = new Date(a.ts); return '<div class="actrow"><span class="actt">' + d.toLocaleDateString('hu-HU', { month: '2-digit', day: '2-digit' }) + ' ' + d.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' }) +
+      '</span><span class="actu">' + escapeHtml(String(a.user || '?').split('@')[0]) + '</span><span class="actx">' + escapeHtml(a.text) + '</span></div>'; }).join('');
+    openModal('<h3>📜 Napló – ki mit csinált</h3><div class="acts">' + (rows || '<p style="color:var(--muted)">Még nincs bejegyzés.</p>') + '</div><div class="mrow"><button class="go-btn ghost2" id="actClose">Bezár</button></div>');
+    document.getElementById('actClose').onclick = closeModal;
+  };
+  if (firebaseReady && db) {
+    db.ref('activity').orderByChild('ts').limitToLast(150).once('value').then(snap => {
+      const v = snap.val() || {}; draw(Object.keys(v).map(k => v[k]).sort((a, b) => b.ts - a.ts));
+    }).catch(() => draw(ACT));
+  } else draw(ACT);
+}
+function onSignedIn(user) {
+  window.CURRENT_USER = user.email || user.displayName || 'felhasználó';
+  hideLogin();
+  if (!fbListening) {
+    fbListening = true;
+    firebaseReady = true;
+    listenVendors(); listenPurchases(); listenSession(); listenDay();
+    try { refreshKnownItems(); } catch (e) { /* ignore */ }
+    showStatus('✓ Szinkron bekapcsolva (' + (user.email || 'bejelentkezve') + ')', 3000);
+  }
+  const al = document.getElementById('authLine');
+  if (al) { al.innerHTML = '☁️ ' + escapeHtml(user.email || 'bejelentkezve') + ' · <a href="#" id="actLink">napló</a> · <a href="#" id="signOutLink">kijelentkezés</a>'; document.getElementById('actLink').onclick = (e) => { e.preventDefault(); showActivity(); }; document.getElementById('signOutLink').onclick = (e) => { e.preventDefault(); firebase.auth().signOut().then(() => location.reload()); }; }
+}
+function authErr(e) {
+  const m = { 'auth/wrong-password': 'Hibás jelszó.', 'auth/invalid-credential': 'Hibás email vagy jelszó.', 'auth/user-not-found': 'Nincs ilyen felhasználó.', 'auth/invalid-email': 'Az email cím formátuma hibás.',
+    'auth/too-many-requests': 'Túl sok próbálkozás, várj egy kicsit.', 'auth/network-request-failed': 'Nincs hálózat.', 'auth/operation-not-allowed': 'Ez a belépési mód nincs engedélyezve a Firebase-ben.',
+    'auth/unauthorized-domain': 'Ez a cím nincs engedélyezve a Firebase-ben (Authentication → Settings → Authorized domains).', 'auth/popup-closed-by-user': 'A bejelentkezési ablak bezárult.', 'auth/user-disabled': 'A felhasználó le van tiltva.' };
+  return m[e && e.code] || ('Bejelentkezési hiba: ' + (e && (e.code || e.message) || e));
+}
+function showLogin() { const l = document.getElementById('loginScreen'); if (l) l.classList.add('show'); }
+function hideLogin() { const l = document.getElementById('loginScreen'); if (l) l.classList.remove('show'); }
 let firebaseReady = false;
 let knownItems = new Set(); // korábban rögzített termék nevek (elgépelés-ellenőrzéshez)
 
@@ -740,9 +811,10 @@ function initFirebase() {
     firebase.initializeApp(firebaseConfig);
     const fbDb = firebase.database();
     db = { ref: (p) => fbDb.ref(FB_ROOT + '/' + p) };
-    firebaseReady = true;
-    listenVendors();
-    listenPurchases();
+    // a közös adatbázis bejelentkezéshez kötött: előbb be kell lépni, utána indul a szinkron
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) onSignedIn(user); else { firebaseReady = false; showLogin(); }
+    });
   } catch (e) {
     console.error("Firebase init hiba:", e);
     showStatus("Firebase hiba - offline módban futunk", 4000);
@@ -769,6 +841,21 @@ function listenPurchases() {
 }
 
 /* ====== TÉRKÉP ====== */
+function setupLogin() {
+  const logo = document.getElementById('homeLogo'); if (logo) document.getElementById('loginLogo').src = logo.src;
+  const err = (m) => { document.getElementById('lgErr').textContent = m || ''; };
+  const go = () => {
+    const e = document.getElementById('lgEmail').value.trim(), p = document.getElementById('lgPass').value;
+    if (!e || !p) { err('Add meg az emailt és a jelszót.'); return; }
+    err(''); document.getElementById('lgGo').disabled = true;
+    firebase.auth().signInWithEmailAndPassword(e, p).catch(x => err(authErr(x))).then(() => { document.getElementById('lgGo').disabled = false; });
+  };
+  document.getElementById('lgGo').onclick = go;
+  document.getElementById('lgPass').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') go(); });
+  document.getElementById('lgGoogle').onclick = () => { err(''); firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(x => err(authErr(x))); };
+  document.getElementById('lgOffline').onclick = (ev) => { ev.preventDefault(); hideLogin(); showStatus('Helyi mód: az adatok csak ezen az eszközön maradnak.', 4000); };
+}
+
 function initMap() {
   map = new google.maps.Map(document.getElementById('map'), {
     center: MARKET_CENTER,
@@ -800,6 +887,7 @@ function initMap() {
     renderMarkers();
   }
 
+  setupLogin();
   startLocationTracking();
   setupLongPress();
   refreshKnownItems();
@@ -992,7 +1080,8 @@ function getNearbyVendorsSorted(lat, lng, limit) {
 function createVendor(name, lat, lng) {
   const id = 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
   // alapból ideiglenes: ha nem jelölöd fixnek, éjfélkor automatikusan törlődik
-  const vendor = { name, lat, lng, permanent: false, createdDate: todayStr() };
+  const vendor = { name, lat, lng, permanent: false, createdDate: todayStr(), by: who() };
+  logActivity('Új stand: ' + name);
   vendors[id] = vendor;
   selectedStandId = id;
 
@@ -1194,8 +1283,9 @@ function saveArazas(vendorId, item, price, unit, date) {
     vendorId,
     vendorName: (vendors[vendorId] && vendors[vendorId].name) || '',
     item, price, unit: unit || 'kg', date,
-    timestamp: Date.now(),
+    timestamp: Date.now(), by: who(),
   };
+  logActivity('Árazás: ' + item + ' ' + price + ' Ft/' + (unit || 'kg') + ' — ' + entry.vendorName);
   if (firebaseReady) {
     const ref = db.ref('priceEntries').push(entry);
     lastSaved = { type: 'arazas', firebaseKey: ref.key };
@@ -1220,8 +1310,9 @@ function savePurchase(vendorId, item, price, quantity, unit, crateType, crateQty
     crateQty: (crateType && crateQty && !isNaN(crateQty)) ? crateQty : null,
     date,
     collected: false,
-    timestamp: Date.now(),
+    timestamp: Date.now(), by: who(),
   };
+  logActivity('Vásárlás: ' + item + ' ' + price + ' Ft/' + (unit || 'kg') + (quantity ? ' × ' + quantity : '') + ' — ' + entry.vendorName);
   let purchaseId;
   if (firebaseReady) {
     const ref = db.ref('purchases').push(entry);
@@ -2119,7 +2210,8 @@ function confirmBuy(idx) {
   let purchaseId = prev && prev.purchaseId;
   if (purchaseId) updatePurchase(purchaseId, { vendorId: vid, vendorName: vname, price, unit, quantity: qty, crateType, crateQty });
   else purchaseId = savePurchase(vid, it.name, price, qty, unit, crateType, crateQty, todayStr(), true);
-  it.done = true; it.buy = { vendorId: vid, vendorName: vname, price, unit, qty, crateType, crateQty, purchaseId, ts: Date.now() };
+  logActivity('Kipipálva: ' + it.name + ' — ' + vname + ' ' + price + ' Ft/' + unit);
+  it.done = true; it.buy = { vendorId: vid, vendorName: vname, price, unit, qty, crateType, crateQty, purchaseId, ts: Date.now(), by: who() };
   saveSession();
   selectedStandId = vid; renderMarkers();
   const v = vendors[vid]; if (v && map) map.panTo({ lat: v.lat, lng: v.lng });
@@ -2312,8 +2404,8 @@ function toggleReady(i) {
     if (!o.name.trim()) { showStatus('⚠️ Add meg a cím nevét!'); return; }
     if (!o.items.length) { showStatus('⚠️ Nincs termék ezen a címen!'); return; }
     if (o.items.some(it => !(Number(it.qty) > 0))) { showStatus('⚠️ Hiányzik egy mennyiség!'); return; }
-    o.status = 'ready'; syncOrderAddress(o);
-  } else o.status = 'draft';
+    o.status = 'ready'; o.readyBy = who(); syncOrderAddress(o); logActivity('Szállításra kész: ' + o.name);
+  } else { o.status = 'draft'; logActivity('Mégsem kész: ' + o.name); }
   saveDay(); renderDelivery();
 }
 
@@ -2519,14 +2611,14 @@ function openReturn(i) {
   $('rtOk').onclick = () => {
     const nb = calc();
     if (!saveAddrDebt(o, nb)) { showStatus('⚠️ A címnek nincs neve.'); return; }
-    o.debtBefore = JSON.parse(JSON.stringify(d)); o.returned = JSON.parse(JSON.stringify(ret)); o.status = 'delivered'; o.deliveredAt = Date.now();
+    o.debtBefore = JSON.parse(JSON.stringify(d)); o.returned = JSON.parse(JSON.stringify(ret)); o.status = 'delivered'; o.deliveredAt = Date.now(); o.deliveredBy = who(); logActivity('Kiszállítva: ' + o.name + ' (' + fmtFt(orderTotal(o)) + ')');
     saveDay(); closeModal(); renderRun(); showStatus('✓ ' + o.name + ' kiszállítva', 2500);
   };
 }
 function undoDelivery(i) {
   const o = DAY.orders[i]; if (o.status !== 'delivered') return;
   saveAddrDebt(o, JSON.parse(JSON.stringify(o.debtBefore || {})));
-  o.status = 'ready'; delete o.deliveredAt; saveDay(); closeModal(); renderRun();
+  o.status = 'ready'; delete o.deliveredAt; delete o.deliveredBy; logActivity('Kiszállítás visszavonva: ' + o.name); saveDay(); closeModal(); renderRun();
 }
 
 /* ---------- KEZDŐ / KORRIGÁLT EGYENLEG A CÍM SZERKESZTŐBEN ---------- */
@@ -2643,6 +2735,7 @@ showScreen('home');
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC64dO7Vgls7acLmfsocdxMcLOSF1dO1Rw&callback=initMap" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
 </body>

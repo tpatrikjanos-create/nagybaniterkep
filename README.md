@@ -103,3 +103,8 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - A `firebaseConfig` a „nagybani-gastro-koltsegkonyv” projektre mutat (közös adatbázis a költségkönyv alkalmazással).
 - Az app minden adata a saját `piacTerkep/…` ágon él (vendors, purchases, priceEntries, shopSession, deliveryDay, addressBook, archive), így nem keveredik a költségkönyv adataival.
 - Jogosultsági hiba esetén (Rules) látható figyelmeztetés jelenik meg.
+
+## v2.9 – Bejelentkezés és napló
+- Firebase Authentication (email + jelszó, vagy Google-fiók): a közös projekt felhasználóival lehet belépni. Belépés nélkül „helyi mód” is van (az adat csak az eszközön marad).
+- Minden új rögzítés (stand, árazás, vásárlás, kipipálás) tárolja, ki csinálta (`by`); a szállítás állapotváltásait is.
+- „Napló” (kezdőképernyő alján, bejelentkezve): időrendben, ki mit csinált (Firebase `piacTerkep/activity`).
