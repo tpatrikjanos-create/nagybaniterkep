@@ -163,3 +163,7 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Bevásárlás: címek kiválasztása után címenként (nagy betűs „MOST EZ A CÍM RENDELÉSE”) adod meg a zöldségeket és mennyiségeket; „Következő cím” gombbal lépsz tovább, az utolsónál „Kész — indulhat a bevásárlás”. A térképnézetben az összesített (zöldség/mennyiség) checklist jön.
 - Komissiózás: nincs „Új cím”; „Mit vettünk” összesítő (vettünk / rendelve), egyszerre egy cím, a rendelt mennyiség a tételnél látszik, a mért mennyiség és rekesz/láda a szerkesztőben.
 - Szállítás: szállítmányonként összesítő (hány rekesz/láda) és címenkénti bontás.
+
+## v3.9 – Megjegyzések a rendeléseknél
+- Címenkénti rendelésfelvételnél tételenként megjegyzés (pl. „nagy fejű legyen”) és a teljes rendeléshez is megjegyzés rovat.
+- A megjegyzések látszanak a bevásárlás checklistjén (címmel), az összegyűjtésnél, a komissiózásnál (tétel és kártya), a szállításnál és a szállítólevélen.

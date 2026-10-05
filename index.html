@@ -538,6 +538,11 @@
   #lsWho { display: none; } #listScreen[data-mode=items] #lsWho.on { display: block; }
   #lsWho { background: linear-gradient(180deg,#ffe9a0,#ffc84a); border: 1px solid #a8700a; border-radius: 6px; padding: 8px 12px; margin: 0 0 8px; color: #3d2a00; text-align: center; }
   #lsWho small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .6px; } #lsWho b { display: block; font-size: 27px; line-height: 1.1; text-transform: uppercase; word-break: break-word; }
+  #lsOrdNote { display: none; width: 100%; margin: 0 0 8px; padding: 9px 12px; border-radius: 4px; border: 1px solid #a8700a; background: #fff8e1; font-size: 15px; }
+  #listScreen[data-mode=items] #lsOrdNote.on { display: block; }
+  .pctrl .pnote { width: 100%; min-height: 0; font: inherit; font-size: 12.5px; margin-top: 4px; padding: 5px 6px; border: 1.5px solid #9cc0e8; border-radius: 6px; resize: none; background: #fff; }
+  .cnote { display: block; color: #8a4b00; font-weight: 700; }
+  .irow .inote { grid-column: 1 / -1; } .irow .inote input { width: 100%; background: #fff8e1; border-color: #e0a526; }
   .whc.ship { background: #eaf4ff; border-color: #9cc0e8; } .whc.ship h4 { color: #1a4fa3; }
   .whc { background: #fff8e1; border: 1px solid #e8c766; border-radius: 6px; padding: 10px 12px; margin: 10px 0; }
   .whc h4 { margin: 0 0 6px; color: #6b4a00; } .whr { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 0; font-size: 14px; }
@@ -595,6 +600,7 @@
       <h2 id="lsTitle">Bevásárlás</h2>
     </div>
     <div id="lsWho"></div>
+    <input type="text" id="lsOrdNote" placeholder="📝 Megjegyzés a rendeléshez (pl. reggel 6 előtt)" autocomplete="off">
     <div class="ls-search">
       <input type="search" id="lsSearch" placeholder="Termék keresése (ékezet nélkül is)" autocomplete="off">
     </div>
@@ -2015,6 +2021,7 @@ function updateCard(pid) {
   ctrl.innerHTML = '<div class="prow"><button data-act="dec" aria-label="kevesebb">−</button><input type="number" inputmode="decimal" step="any" min="0" value="' + it.qty + '" aria-label="vásárlandó mennyiség"><button data-act="inc" aria-label="több">+</button></div>' +
     '<div class="plab">Venni: <b>' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + '</b>' + ((orderMode() ? SELL[pid] : it.sell) > 0 ? ' · eladás: <b>' + fmtQty(orderMode() ? SELL[pid] : it.sell) + ' Ft/' + escapeHtml(unitLabel(it.unit)) + '</b>' : '') + '</div>' +
     '<input type="number" class="psell" inputmode="decimal" step="any" min="0" placeholder="Eladási ár Ft/' + escapeHtml(unitLabel(it.unit)) + '" value="' + ((orderMode() ? SELL[pid] : it.sell) > 0 ? (orderMode() ? SELL[pid] : it.sell) : '') + '">';
+  if (orderMode()) ctrl.insertAdjacentHTML('beforeend', '<textarea class="pnote" rows="2" placeholder="Megjegyzés (pl. nagy fejű)">' + escapeHtml(it.note || '') + '</textarea>');
 }
 function renderCatalog() {
   const q = normText($('lsSearch').value), wrap = $('catalogWrap'); let html = '', n = 0;
@@ -2073,10 +2080,11 @@ $('catalogWrap').addEventListener('click', (e) => {
   if (filterSel && !findItem(pid)) card.remove();
 });
 $('catalogWrap').addEventListener('change', (e) => {
-  if (!e.target.matches('.pctrl input')) return;
+  if (!e.target.matches('.pctrl input, .pctrl textarea')) return;
   const pid = e.target.closest('.pcard').dataset.pid;
   if (orderMode()) {
     const o = curOrder(), oi = o.items.find(x => x.pid === pid); if (!oi) return;
+    if (e.target.classList.contains('pnote')) { oi.note = e.target.value.trim(); orderChanged(); return; }
     if (e.target.classList.contains('psell')) { const sv = parseFloat(String(e.target.value).replace(',', '.')); setSell(pid, sv > 0 ? sv : ''); orderChanged(); return; }
     const v = parseFloat(String(e.target.value).replace(',', '.'));
     if (v > 0) oi.qty = v; else o.items.splice(o.items.indexOf(oi), 1);
@@ -2226,7 +2234,7 @@ function renderChecklist() {
     const b = it.buy;
     const sub = it.done && b ? '<small class="cdone">✓ ' + escapeHtml(b.vendorName || '?') + ' · ' + fmtQty(b.price) + ' Ft/' + escapeHtml(unitLabel(b.unit)) + (b.crateType ? ' · ' + b.crateQty + ' ' + unitLabel(b.crateType) + ' csere' : '') + (it.sell > 0 && toUnitKey(b.unit) === toUnitKey(it.unit) ? ' · ' + marginTxt(it.sell, b.price) : '') + '</small>' : '';
     return '<div class="crow' + (it.done ? ' done' : '') + '" data-i="' + idx + '" style="animation-delay:' + Math.min(idx, 12) * 25 + 'ms">' + thumbHtml(it) +
-      '<div class="cmain"><b>' + escapeHtml(it.name) + '</b><small>' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + (it.sell > 0 ? ' · eladás: ' + fmtQty(it.sell) + ' Ft' : '') + '</small>' + sub + '</div><div class="ccheck">✓</div></div>';
+      '<div class="cmain"><b>' + escapeHtml(it.name) + '</b><small>' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + (it.sell > 0 ? ' · eladás: ' + fmtQty(it.sell) + ' Ft' : '') + '</small>' + sub + notesHtml(it) + '</div><div class="ccheck">✓</div></div>';
   }).join('');
   $('panelContent').innerHTML = '<h3>🛒 Bevásárlás — ' + st.done + '/' + st.total + '</h3><div class="prog"><i style="width:' + pct + '%"></i></div>' + rows +
     '<div class="mrow" style="margin-top:12px"><button class="go-btn ghost2" id="ckAddMore">+ Termék hozzáadása</button>' +
@@ -2249,7 +2257,7 @@ function openBuyForm(idx) {
     '<input type="text" id="bfNewName" placeholder="Az új stand neve" style="width:100%;margin:6px 0 0;display:' + (firstId === '__new__' ? 'block' : 'none') + '">';
   const pu = prev ? toUnitKey(prev.unit) : toUnitKey(it.unit);
   const defQty = prev ? prev.qty : (pu === toUnitKey(it.unit) ? it.qty : '');
-  $('panelContent').innerHTML = '<h3>' + (it.done ? '✏️ Módosítás' : '✅ Kipipálás') + ' — ' + escapeHtml(it.name) + '</h3><small style="color:var(--muted)">Tervezett: ' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + '</small>' +
+  $('panelContent').innerHTML = '<h3>' + (it.done ? '✏️ Módosítás' : '✅ Kipipálás') + ' — ' + escapeHtml(it.name) + '</h3><small style="color:var(--muted)">Tervezett: ' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + '</small>' + notesHtml(it) +
     '<span class="flabel">Hol vettük?</span><div id="bfVendors">' + radios + '</div>' +
     '<span class="flabel">Ár</span><div class="row"><input type="number" id="bfPrice" inputmode="decimal" step="any" min="0" placeholder="Ft" value="' + (prev ? prev.price : '') + '" style="flex:1"><select id="bfUnit" style="width:110px">' + unitSelectHtml(pu).replace(/value="lada"/, 'value="lada"') + '</select></div>' +
     '<span class="flabel">Eladási ár (Ft / egység) <span id="bfMargin" style="float:right"></span></span><div class="row"><input type="number" id="bfSell" inputmode="decimal" step="any" min="0" placeholder="amennyiért továbbadjuk" value="' + (it.sell > 0 ? it.sell : '') + '" style="width:100%"></div>' +
@@ -2347,7 +2355,7 @@ function renderCollect() {
     const tag = Object.keys(cr).length ? '<span class="tag">🧺 vidd: ' + Object.entries(cr).map(([k, q]) => q + ' ' + unitLabel(k)).join(' + ') + '</span>' : '';
     html += '<div class="vgroup"><h4>📍 ' + escapeHtml(v.name || '?') + tag + '</h4>' + v.items.map(it => {
       const idx = SESSION.items.indexOf(it);
-      return '<div class="crow' + (it.collected ? ' done' : '') + '" data-i="' + idx + '">' + thumbHtml(it) + '<div class="cmain"><b>' + escapeHtml(it.name) + '</b><small>' + fmtQty(it.buy.qty) + ' ' + escapeHtml(unitLabel(it.buy.unit)) + '</small></div><div class="ccheck">✓</div></div>';
+      return '<div class="crow' + (it.collected ? ' done' : '') + '" data-i="' + idx + '">' + thumbHtml(it) + '<div class="cmain"><b>' + escapeHtml(it.name) + '</b><small>' + fmtQty(it.buy.qty) + ' ' + escapeHtml(unitLabel(it.buy.unit)) + '</small>' + notesHtml(it) + '</div><div class="ccheck">✓</div></div>';
     }).join('') + '</div>';
   });
   if (!Object.keys(g).length) html += '<p class="sub">Nincs megvásárolt tétel.</p>';
@@ -2447,7 +2455,7 @@ function syncOrderAddress(o) {   // a cím automatikusan bekerül a mentett cím
   saveAddrs();
   if (firebaseReady) db.ref('addressBook/' + id).set(ADDRS[id]);
 }
-function itemsLine(o) { return o.items.filter(it => Number(it.qty) > 0).map(it => it.name + ' ' + fmtQty(it.qty) + ' ' + normUnit(it.unit)).join(' · '); }
+function itemsLine(o) { return o.items.filter(it => Number(it.qty) > 0).map(it => it.name + ' ' + fmtQty(it.qty) + ' ' + normUnit(it.unit) + (it.note ? ' (' + it.note + ')' : '')).join(' · '); }
 function orderTotal(o) { return o.items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.price) || 0), 0); }
 function cratesText(o) {
   const p = CRATE_KEYS.filter(k => Number(o.crates[k[0]]) > 0).map(k => o.crates[k[0]] + ' ' + k[1].toLowerCase());
@@ -2492,7 +2500,7 @@ function renderDelivery() {
     const n = o.items.length, dv = o.status === 'delivered', rd = o.status === 'ready' || dv;
     return '<div class="ocard' + (dv ? ' delivered' : rd ? ' ready' : '') + '" data-i="' + i + '" style="animation-delay:' + Math.min(i, 10) * 40 + 'ms">' +
       '<div class="oh"><div class="on"><b>' + (o.name ? escapeHtml(o.name) : '#' + (i + 1) + '. cím — nincs kitöltve') + '</b><small>' + escapeHtml(o.address || 'cím nélkül') + '</small>' + dateChip(o) + '</div><span class="pill">' + (dv ? '✓ Kiszállítva' : rd ? '✓ Szállításra kész' : 'Készül') + '</span></div>' +
-      '<div class="om"><span><b>' + n + '</b> tétel</span><span>📦 ' + (cratesText(o) ? escapeHtml(cratesText(o)) : 'nincs edényzet') + '</span></div><div class="ilist">' + escapeHtml(itemsLine(o)) + '</div>' + (balTag(debtOf(o)) ? '<div style="margin:-4px 0 8px">' + balTag(debtOf(o)) + '</div>' : '') +
+      '<div class="om"><span><b>' + n + '</b> tétel</span><span>📦 ' + (cratesText(o) ? escapeHtml(cratesText(o)) : 'nincs edényzet') + '</span></div><div class="ilist">' + escapeHtml(itemsLine(o)) + '</div>' + (o.orderNote ? '<div class="ilist" style="color:#8a4b00;font-weight:700">📝 ' + escapeHtml(o.orderNote) + '</div>' : '') + (balTag(debtOf(o)) ? '<div style="margin:-4px 0 8px">' + balTag(debtOf(o)) + '</div>' : '') +
       '<div class="oa"><button data-act="edit">✏️ Szerkeszt</button><button data-act="print">🖨️ PDF</button><button class="ok" data-act="ready">' + (dv ? 'Kiszállítva' : rd ? 'Mégsem kész' : 'Szállításra kész ✓') + '</button></div></div>';
   }).join('');
   html += '<p style="text-align:center;margin:14px 0 0"><a href="#" id="dlWipe" style="color:#b3261e;font-size:13px">🗑 Összes nem kiszállított cím törlése</a></p><p style="text-align:center;color:var(--muted);font-size:12.5px;margin:14px 0">Szállítólevél fejléc: <b>' + escapeHtml(companyName()) + '</b> · <a href="#" id="dlCompany" style="color:var(--g700)">módosít</a></p>';
@@ -2550,6 +2558,7 @@ function openOrder(i) {
     '<div class="addr-chips" id="oeChips"></div>' +
     '<span class="flabel">Cím</span><input type="text" id="oeAddr" autocomplete="off" placeholder="Utca, házszám">' +
     '<span class="flabel">Megjegyzés</span><input type="text" id="oeNote" autocomplete="off" placeholder="pl. hátsó bejárat, 6 óra előtt">' +
+    '<span class="flabel">Rendelés megjegyzése</span><input type="text" id="oeOrdNote" autocomplete="off" placeholder="pl. a rendeléshez fűzött kérés">' +
     '<span class="flabel">Tételek</span><div id="oeItems"></div>' +
     '<button class="go-btn ghost2" id="oeAddItem" style="margin-top:10px">+ Termék hozzáadása</button>' +
     '<span class="flabel">Kiadott edényzet</span><div class="crate-grid" id="oeCrates"></div>' +
@@ -2558,9 +2567,9 @@ function openOrder(i) {
     '<div class="mrow"><button class="go-btn ghost2" id="oePrint">🖨️ Szállítólevél</button><button class="go-btn ghost2" id="oeDone">Mentés</button></div>' +
     '<button class="go-btn ghost2" id="oeDel" style="width:100%;margin-top:8px;color:#b3261e">🗑 Cím törlése</button></div>');
   modalHook = () => { syncOrderAddress(o); saveDay(); afterOrderChange(); };
-  $('oeName').value = o.name; $('oeAddr').value = o.address; $('oeNote').value = o.note;
-  const upd = () => { o.name = $('oeName').value; o.address = $('oeAddr').value; o.note = $('oeNote').value; saveDay(); };
-  ['oeName', 'oeAddr', 'oeNote'].forEach(id => $(id).addEventListener('input', () => { upd(); if (id === 'oeName') renderAddrChips(o); }));
+  $('oeName').value = o.name; $('oeAddr').value = o.address; $('oeNote').value = o.note; $('oeOrdNote').value = o.orderNote || '';
+  const upd = () => { o.name = $('oeName').value; o.address = $('oeAddr').value; o.note = $('oeNote').value; o.orderNote = $('oeOrdNote').value; saveDay(); };
+  ['oeName', 'oeAddr', 'oeNote', 'oeOrdNote'].forEach(id => $(id).addEventListener('input', () => { upd(); if (id === 'oeName') renderAddrChips(o); }));
   renderAddrChips(o); renderOrderItems(o); renderCrates(o); renderDebtEditor(o); updateOrderTotal(o);
   $('oeAddItem').onclick = () => openPicker(i);
   $('oePrint').onclick = () => { syncOrderAddress(o); saveDay(); printOrders([o]); };
@@ -2663,13 +2672,14 @@ function syncSessionFromOrders() {
       const q = Number(it.qty) || 0; if (!(q > 0) || !PROD_BY_ID[it.pid]) return;
       const a = agg[it.pid] = agg[it.pid] || { unit: normUnit(it.unit), qty: 0, name: it.name };
       if (toUnitKey(normUnit(it.unit)) === toUnitKey(a.unit)) a.qty += q;
+      if (it.note) (a.notes = a.notes || []).push({ who: o.name || '?', note: it.note });
     });
   });
-  SESSION.items.forEach(it => { const a = agg[it.pid]; it.ord = a ? r2(a.qty) : 0; if (a) it.unit = a.unit; if (SELL[it.pid] > 0) it.sell = Number(SELL[it.pid]); recalcItem(it); });
+  SESSION.items.forEach(it => { const a = agg[it.pid]; it.ord = a ? r2(a.qty) : 0; it.notes = a ? (a.notes || []) : []; if (a) it.unit = a.unit; if (SELL[it.pid] > 0) it.sell = Number(SELL[it.pid]); recalcItem(it); });
   Object.keys(agg).forEach(pid => {
     if (findItem(pid)) return;
     const p = PROD_BY_ID[pid], a = agg[pid];
-    SESSION.items.push({ pid, name: p.name, cat: p.cat, unit: a.unit, qty: r2(a.qty), ord: r2(a.qty), extra: 0, sell: SELL[pid] > 0 ? Number(SELL[pid]) : '', done: false, buy: null, collected: false });
+    SESSION.items.push({ pid, name: p.name, cat: p.cat, unit: a.unit, qty: r2(a.qty), ord: r2(a.qty), extra: 0, notes: a.notes || [], sell: SELL[pid] > 0 ? Number(SELL[pid]) : '', done: false, buy: null, collected: false });
   });
   SESSION.items = SESSION.items.filter(it => it.ord > 0 || it.extra > 0);
 }
@@ -2684,11 +2694,14 @@ function addToCurOrder(pid, qty, unit) {
   const ex = o.items.find(x => x.pid === pid);
   if (ex) ex.qty = r2((Number(ex.qty) || 0) + qty); else o.items.push({ pid, name: p.name, unit: normUnit(unit || p.unit), qty, price: SELL[pid] > 0 ? Number(SELL[pid]) : 0 });
 }
+$('lsOrdNote').addEventListener('input', () => { const o = curOrder(); if (o && orderMode()) { o.orderNote = $('lsOrdNote').value.trim(); saveDay(); } });
+function notesHtml(it) { return (it.notes || []).map(n => '<small class="cnote">📝 ' + escapeHtml(n.who) + ': ' + escapeHtml(n.note) + '</small>').join(''); }
 function orderChanged() { saveDay(); syncSessionFromOrders(); saveSession(); }
 function setListMode(m) {
   listMode = m; $('listScreen').dataset.mode = m;
   const who = $('lsWho'), om = m === 'items' && orderMode();
   who.classList.toggle('on', om);
+  const on = $('lsOrdNote'); on.classList.toggle('on', om); on.value = om ? (curOrder().orderNote || '') : '';
   if (om) { const l = shopOrders(), o = curOrder(); who.innerHTML = '<small>MOST EZ A CÍM RENDELÉSE · ' + (Math.min(ordPos, l.length - 1) + 1) + '/' + l.length + '</small><b>' + escapeHtml(o.name || 'Névtelen cím') + '</b>'; }
   $('lsTitle').textContent = m === 'addr' ? 'Melyik címnek vásárolunk?' : (om ? 'Mit kérnek?' : 'Mit kell venni?');
   if (m === 'addr') renderAddrStep(); else { renderCatalog(); $('lsScroll').scrollTop = 0; }
@@ -2756,7 +2769,7 @@ function renderOrderItems(o) {
     return '<div class="irow" data-k="' + k + '"><div class="nm">' + escapeHtml(it.name) + (it.fromStock !== undefined ? ' <small style="color:#6b4a00">🏬 raktárból</small>' : '') + '</div><button class="rm" data-act="rm" aria-label="törlés">✕</button>' +
       '<div class="f"><div><label>Mennyiség (élesben)</label><input type="number" inputmode="decimal" step="any" min="0" data-f="qty" value="' + (it.qty === '' ? '' : it.qty) + '"></div>' +
       '<div><label>Egység</label><select data-f="unit"' + (it.fromStock !== undefined ? ' disabled' : '') + '>' + DEL_UNITS.map(u => '<option' + (u === normUnit(it.unit) ? ' selected' : '') + '>' + u + '</option>').join('') + '</select></div>' +
-      '</div><div class="hint' + (h && h.warn ? ' warn' : '') + '" data-h>' + (h ? escapeHtml(h.t) : '') + '</div></div>';
+      '</div><div class="inote"><input type="text" data-f="note" placeholder="📝 Megjegyzés (pl. nagy fejű)" value="' + escapeHtml(it.note || '') + '"></div><div class="hint' + (h && h.warn ? ' warn' : '') + '" data-h>' + (h ? escapeHtml(h.t) : '') + '</div></div>';
   }).join('');
   const refresh = (row, k) => {
     const it = o.items[k];
@@ -2775,7 +2788,7 @@ function renderOrderItems(o) {
           if (nq > cur) stockTake(it.pid, it.unit, r2(nq - cur)); else if (nq < cur) stockReturn(it, r2(cur - nq));
           it.fromStock = nq; it.qty = nq; saveDay(); refresh(row, k); return;
         }
-        it[f] = f === 'unit' ? inp.value : (inp.value === '' ? '' : parseFloat(String(inp.value).replace(',', '.')));
+        it[f] = (f === 'unit' || f === 'note') ? inp.value : (inp.value === '' ? '' : parseFloat(String(inp.value).replace(',', '.')));
         saveDay(); refresh(row, k);
       });
     });
@@ -2832,7 +2845,7 @@ function openPicker(i) {
 
 /* ---------- SZÁLLÍTÓLEVÉL (nyomtatás / PDF) ---------- */
 function invoiceHtml(o) {
-  const rows = o.items.filter(it => Number(it.qty) > 0).map((it, k) => '<tr><td>' + (k + 1) + '</td><td>' + escapeHtml(it.name) + '</td><td class="r">' + fmtQty(it.qty) + '</td><td>' + escapeHtml(normUnit(it.unit)) + '</td></tr>').join('');
+  const rows = o.items.filter(it => Number(it.qty) > 0).map((it, k) => '<tr><td>' + (k + 1) + '</td><td>' + escapeHtml(it.name) + (it.note ? ' <i>(' + escapeHtml(it.note) + ')</i>' : '') + '</td><td class="r">' + fmtQty(it.qty) + '</td><td>' + escapeHtml(normUnit(it.unit)) + '</td></tr>').join('');
   return '<div class="inv"><div class="brandrow"><img alt="" src="' + $('homeLogo').src + '"><h1>Szállítólevél</h1></div><div class="meta"><div><b>' + escapeHtml(companyName()) + '</b></div><div>Dátum: ' + escapeHtml(o.date || DAY.date) + '</div></div>' +
     '<div class="meta"><div><b>Átvevő:</b> ' + escapeHtml(o.name || '—') + '<br>' + escapeHtml(o.address || '') + (o.note ? '<br><i>' + escapeHtml(o.note) + '</i>' : '') + '</div></div>' +
     '<table><thead><tr><th>#</th><th>Termék</th><th class="r">Mért menny.</th><th>Egység</th></tr></thead><tbody>' + rows + '</tbody></table>' +
@@ -2883,7 +2896,7 @@ function renderRun() {
   const card = (i) => {
     const o = os[i], dl = o.status === 'delivered';
     return '<div class="ocard' + (dl ? ' delivered' : '') + '" data-i="' + i + '" style="animation-delay:' + Math.min(i, 10) * 40 + 'ms"><div class="oh"><div class="on"><b>' + escapeHtml(o.name) + '</b><small>' + escapeHtml(o.address || 'cím nélkül') + '</small>' + dateChip(o) + '</div><span class="pill">' + (dl ? '✓ Kiszállítva' : 'Kiszállítandó') + '</span></div>' +
-      '<div class="om"><span><b>' + o.items.length + '</b> tétel</span><span>📦 ' + (cratesText(o) ? escapeHtml(cratesText(o)) : 'nincs edényzet') + '</span></div><div class="ilist">' + escapeHtml(itemsLine(o)) + '</div>' +
+      '<div class="om"><span><b>' + o.items.length + '</b> tétel</span><span>📦 ' + (cratesText(o) ? escapeHtml(cratesText(o)) : 'nincs edényzet') + '</span></div><div class="ilist">' + escapeHtml(itemsLine(o)) + '</div>' + (o.orderNote ? '<div class="ilist" style="color:#8a4b00;font-weight:700">📝 ' + escapeHtml(o.orderNote) + '</div>' : '') +
       (balTag(debtOf(o)) ? '<div>' + balTag(debtOf(o)) + '</div>' : '') + '</div>';
   };
   const dl = (d) => { const p = String(d).split('-'); return (+p[1]) + '. ' + (+p[2]) + '.' + (d === todayStr() ? ' (ma)' : ''); };
@@ -2905,9 +2918,9 @@ function renderRun() {
 }
 function openRun(i) {
   const o = DAY.orders[i], dl = o.status === 'delivered', d = debtOf(o);
-  const items = o.items.filter(it => Number(it.qty) > 0).map(it => '<tr><td>' + escapeHtml(it.name) + '</td><td class="r">' + fmtQty(it.qty) + ' ' + escapeHtml(normUnit(it.unit)) + '</td></tr>').join('') || '<tr><td style="color:var(--muted)">Csak szállítás — nincs áru</td></tr>';
+  const items = o.items.filter(it => Number(it.qty) > 0).map(it => '<tr><td>' + escapeHtml(it.name) + (it.note ? '<br><small style="color:#8a4b00">📝 ' + escapeHtml(it.note) + '</small>' : '') + '</td><td class="r">' + fmtQty(it.qty) + ' ' + escapeHtml(normUnit(it.unit)) + '</td></tr>').join('') || '<tr><td style="color:var(--muted)">Csak szállítás — nincs áru</td></tr>';
   const nav = o.address ? '<a class="navlink" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(o.address) + '">🧭 Navigáció</a>' : '';
-  openModal('<div class="oedit"><h3>🚚 ' + escapeHtml(o.name) + '</h3><div style="color:var(--muted);font-size:14px">' + escapeHtml(o.address || '') + (o.note ? '<br><i>' + escapeHtml(o.note) + '</i>' : '') + '</div>' + nav +
+  openModal('<div class="oedit"><h3>🚚 ' + escapeHtml(o.name) + '</h3><div style="color:var(--muted);font-size:14px">' + escapeHtml(o.address || '') + (o.note ? '<br><i>' + escapeHtml(o.note) + '</i>' : '') + '</div>' + (o.orderNote ? '<div style="color:#8a4b00;font-weight:700;margin-top:4px">📝 ' + escapeHtml(o.orderNote) + '</div>' : '') + nav +
     '<div class="rsec">Átadandó</div><table class="rtab">' + items + '</table>' +
     '<div class="bal-box">📦 Most kiadandó edényzet: <b>' + (cratesText(o) ? escapeHtml(cratesText(o)) : 'nincs') + '</b>' +
     '<div style="margin-top:6px">' + (dl ? 'Tartozás a kiszállítás előtt: ' + (balText(o.debtBefore || {}) || 'nincs') : 'Eddigi tartozás: ' + (balText(d) ? '<span class="big">' + escapeHtml(balText(d)) + '</span>' : 'nincs')) + '</div>' +
