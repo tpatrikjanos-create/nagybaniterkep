@@ -153,3 +153,8 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 ## v3.6 – Szállítás: Címek és Új kiszállítás; Komissiózás: Új rendelés raktárkészletből
 - Szállítás képernyő: „📍 Címek” (mentett címek, edényzet-egyenleg címenként és összesen, szerkesztés/törlés, „+ Új cím”), „+ Új kiszállítás” (csak szállítás, komissiózás nélkül; mentett vagy új cím, tételek opcionálisak). A komissiózott, szállításra kész rendelések itt jelennek meg.
 - Komissiózás: „+ Új rendelés”; a tételválasztóban a Raktárkészlet külön szekció, a felvett mennyiség levonódik a raktárból (módosításkor/törléskor visszakerül).
+
+## v3.7 – Egy cím egyszerre, edényzet-tartozás, vissza gomb az appon belül
+- Komissiózás: a mentett címek azonnal előjönnek; egy cím kiválasztása után a szerkesztőben „✓ Kész — szállításra kész”, utána „Még egy cím a szállítmányhoz?” (következő mentett cím vagy új cím).
+- Edényzet: csak tartozás van (náluk lévő edényzet); negatív egyenleg megszűnt, a feliratok „tartozás”-ra váltottak.
+- Navigáció: a böngésző/telefon „vissza” gombja az alkalmazás menüpontjai között lép (előző képernyő), megnyitott ablak/panel esetén azt zárja be.
