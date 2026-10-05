@@ -535,6 +535,10 @@
   .mg { font-weight: 800; font-size: 12.5px; } .mg.pos { color: #1f7a1f; } .mg.neg { color: #c62828; }
   #runScreen .ls-scroll { padding-bottom: 110px !important; }
   .abrow .oa button { flex: 1; }
+  #lsWho { display: none; } #listScreen[data-mode=items] #lsWho.on { display: block; }
+  #lsWho { background: linear-gradient(180deg,#ffe9a0,#ffc84a); border: 1px solid #a8700a; border-radius: 6px; padding: 8px 12px; margin: 0 0 8px; color: #3d2a00; text-align: center; }
+  #lsWho small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .6px; } #lsWho b { display: block; font-size: 27px; line-height: 1.1; text-transform: uppercase; word-break: break-word; }
+  .whc.ship { background: #eaf4ff; border-color: #9cc0e8; } .whc.ship h4 { color: #1a4fa3; }
   .whc { background: #fff8e1; border: 1px solid #e8c766; border-radius: 6px; padding: 10px 12px; margin: 10px 0; }
   .whc h4 { margin: 0 0 6px; color: #6b4a00; } .whr { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 0; font-size: 14px; }
   .whr button { border: 1px solid #a8700a; border-radius: 4px; background: linear-gradient(180deg,#ffe9a0,#ffc84a); color: #3d2a00; font-weight: 700; padding: 6px 10px; cursor: pointer; }
@@ -590,6 +594,7 @@
       <button class="icon-btn" id="lsBack">← Vissza</button>
       <h2 id="lsTitle">Bevásárlás</h2>
     </div>
+    <div id="lsWho"></div>
     <div class="ls-search">
       <input type="search" id="lsSearch" placeholder="Termék keresése (ékezet nélkül is)" autocomplete="off">
     </div>
@@ -1990,7 +1995,7 @@ $('resumeCard').addEventListener('click', () => {
   if (SESSION.phase === 'list') showScreen('list');
   else { showScreen('shop'); openPhasePanel(); }
 });
-$('lsBack').addEventListener('click', () => { if (listMode === 'items' && SESSION.phase === 'list') setListMode('addr'); else goBack(); });
+$('lsBack').addEventListener('click', () => { if (listMode === 'items' && SESSION.phase === 'list') { if (orderMode() && ordPos > 0) { ordPos--; setListMode('items'); } else setListMode('addr'); } else goBack(); });
 $('shopFab').addEventListener('click', openPhasePanel);
 
 /* ---------- TERMÉKKATALÓGUS-NÉZET ---------- */
@@ -2004,12 +2009,12 @@ function productCardHtml(p, idx) {
 }
 function updateCard(pid) {
   const el = document.querySelector('.pcard[data-pid="' + pid + '"]'); if (!el) return;
-  const it = findItem(pid), ctrl = el.querySelector('.pctrl');
+  const it = selItem(pid), ctrl = el.querySelector('.pctrl');
   if (!it) { el.classList.remove('selected'); ctrl.innerHTML = ''; return; }
   el.classList.add('selected');
   ctrl.innerHTML = '<div class="prow"><button data-act="dec" aria-label="kevesebb">−</button><input type="number" inputmode="decimal" step="any" min="0" value="' + it.qty + '" aria-label="vásárlandó mennyiség"><button data-act="inc" aria-label="több">+</button></div>' +
-    '<div class="plab">Venni: <b>' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + '</b>' + (it.sell > 0 ? ' · eladás: <b>' + fmtQty(it.sell) + ' Ft/' + escapeHtml(unitLabel(it.unit)) + '</b>' : '') + '</div>' +
-    '<input type="number" class="psell" inputmode="decimal" step="any" min="0" placeholder="Eladási ár Ft/' + escapeHtml(unitLabel(it.unit)) + '" value="' + (it.sell > 0 ? it.sell : '') + '">';
+    '<div class="plab">Venni: <b>' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + '</b>' + ((orderMode() ? SELL[pid] : it.sell) > 0 ? ' · eladás: <b>' + fmtQty(orderMode() ? SELL[pid] : it.sell) + ' Ft/' + escapeHtml(unitLabel(it.unit)) + '</b>' : '') + '</div>' +
+    '<input type="number" class="psell" inputmode="decimal" step="any" min="0" placeholder="Eladási ár Ft/' + escapeHtml(unitLabel(it.unit)) + '" value="' + ((orderMode() ? SELL[pid] : it.sell) > 0 ? (orderMode() ? SELL[pid] : it.sell) : '') + '">';
 }
 function renderCatalog() {
   const q = normText($('lsSearch').value), wrap = $('catalogWrap'); let html = '', n = 0;
@@ -2030,13 +2035,29 @@ function renderChips() {
     CATALOG_CATS.map(c => '<button class="chip" data-k="' + c.key + '">' + c.emoji + ' ' + escapeHtml(c.name.split(',')[0]) + '</button>').join('');
 }
 function updateListBar() {
-  const n = SESSION.items.length;
-  const go = $('lsGo'); go.disabled = !n;
+  const n = SESSION.items.length, go = $('lsGo');
+  if (listMode === 'items' && orderMode()) {
+    const l = shopOrders(), pos = Math.min(ordPos, l.length - 1), last = pos >= l.length - 1;
+    go.disabled = last && !n;
+    go.textContent = last ? (n ? 'Kész — indulhat a bevásárlás →' : 'Adj meg legalább egy terméket') : 'Következő cím: ' + (l[pos + 1].name || '?') + ' →';
+    return;
+  }
+  go.disabled = !n;
   go.textContent = n ? ('Indulhat a bevásárlás → (' + n + ' tétel)') : 'Válassz ki legalább egy terméket';
 }
 $('catalogWrap').addEventListener('click', (e) => {
   const card = e.target.closest('.pcard'); if (!card) return;
   const pid = card.dataset.pid, p = PROD_BY_ID[pid], btn = e.target.closest('button[data-act]'), it0 = findItem(pid);
+  if (orderMode()) {
+    const o = curOrder(), oi = o.items.find(x => x.pid === pid);
+    if (btn) {
+      if (!oi) return; const nq = r2((Number(oi.qty) || 0) + (btn.dataset.act === 'inc' ? 1 : -1));
+      if (nq <= 0) o.items.splice(o.items.indexOf(oi), 1); else oi.qty = nq;
+    } else if (e.target.closest('.pctrl')) { return; }
+    else if (oi) o.items.splice(o.items.indexOf(oi), 1);
+    else o.items.push({ pid, name: p.name, unit: normUnit(p.unit), qty: 1, price: SELL[pid] > 0 ? Number(SELL[pid]) : 0 });
+    orderChanged(); updateCard(pid); updateListBar(); return;
+  }
   if (btn) {
     if (!it0) return;
     const ne = Math.round(((it0.extra || 0) + (btn.dataset.act === 'inc' ? 1 : -1)) * 100) / 100;
@@ -2053,7 +2074,15 @@ $('catalogWrap').addEventListener('click', (e) => {
 });
 $('catalogWrap').addEventListener('change', (e) => {
   if (!e.target.matches('.pctrl input')) return;
-  const pid = e.target.closest('.pcard').dataset.pid, it = findItem(pid); if (!it) return;
+  const pid = e.target.closest('.pcard').dataset.pid;
+  if (orderMode()) {
+    const o = curOrder(), oi = o.items.find(x => x.pid === pid); if (!oi) return;
+    if (e.target.classList.contains('psell')) { const sv = parseFloat(String(e.target.value).replace(',', '.')); setSell(pid, sv > 0 ? sv : ''); orderChanged(); return; }
+    const v = parseFloat(String(e.target.value).replace(',', '.'));
+    if (v > 0) oi.qty = v; else o.items.splice(o.items.indexOf(oi), 1);
+    orderChanged(); updateCard(pid); updateListBar(); return;
+  }
+  const it = findItem(pid); if (!it) return;
   if (e.target.classList.contains('psell')) {
     const sv = parseFloat(String(e.target.value).replace(',', '.')); it.sell = sv > 0 ? sv : ''; setSell(pid, it.sell); saveSession(); return;
   }
@@ -2073,9 +2102,18 @@ $('lsChips').addEventListener('click', (e) => {
 });
 function startShopping() {
   if (!SESSION.items.length) return;
+  shopOrders().forEach(o => o.items.forEach(it => { if (it.ordered === undefined) it.ordered = it.qty; }));
+  syncSessionFromOrders(); saveDay();
   SESSION.phase = 'shop'; saveSession(); showScreen('shop'); openChecklist();
 }
-$('lsGo').addEventListener('click', startShopping);
+function lsNext() {
+  if (listMode === 'items' && orderMode()) {
+    const l = shopOrders();
+    if (ordPos < l.length - 1) { ordPos++; setListMode('items'); return; }
+  }
+  startShopping();
+}
+$('lsGo').addEventListener('click', lsNext);
 
 renderChips();
 
@@ -2162,9 +2200,10 @@ function renderEmailRows() {
     let added = 0, skipped = 0;
     box.querySelectorAll('.erow').forEach(el => {
       const pid = el.querySelector('.esel').value, qty = parseFloat(String(el.querySelector('.eqty').value).replace(',', '.')), unit = el.querySelector('.eunit').value;
-      if (pid && qty > 0) { addOrMergeItem(pid, qty, unit); added++; } else skipped++;
+      if (pid && qty > 0) { if (orderMode()) addToCurOrder(pid, qty, unit); else addOrMergeItem(pid, qty, unit); added++; } else skipped++;
     });
-    saveSession(); closeModal(); renderCatalog();
+    if (orderMode()) orderChanged(); else saveSession();
+    closeModal(); renderCatalog(); updateListBar();
     showStatus('✅ ' + added + ' tétel hozzáadva' + (skipped ? ' (' + skipped + ' sort kihagytam)' : ''), 3500);
   };
 }
@@ -2420,6 +2459,11 @@ function allocated(pid, unitKey, exceptOrder) {
   return s;
 }
 function itemHint(o, it) {
+  const h = itemHint0(o, it); if (it.ordered === undefined) return h;
+  const r = 'Rendelt: ' + fmtQty(it.ordered) + ' ' + normUnit(it.unit);
+  return { t: r + (h ? ' · ' + h.t : ''), warn: h ? h.warn : false };
+}
+function itemHint0(o, it) {
   const sess = SESSION.items.find(x => x.pid === it.pid);
   if (!sess || SESSION.phase === 'list') return null;
   const uk = toUnitKey(it.unit), mine = o.items.filter(x => x.pid === it.pid && toUnitKey(x.unit) === uk).reduce((s, x) => s + (Number(x.qty) || 0), 0);
@@ -2436,16 +2480,13 @@ function companyName() { try { return localStorage.getItem('piaci_company') || '
 function renderDelivery() {
   const wrap = $('dlScroll'), os = DAY.orders, t0 = todayStr();
   renderDlBar();
-  const anyReady = os.some(o => o.date === t0 && !o.transport && o.status !== 'draft');
-  const used = new Set(os.filter(o => o.date === t0).map(o => normText(o.name)));
-  const saved = savedAddrs().filter(x => !used.has(normText(x[1].name))).sort((a, b) => (b[1].lastUsed || 0) - (a[1].lastUsed || 0)).slice(0, 30);
-  const head = '<div class="del-intro"><h3>' + (anyReady ? 'Még egy cím a szállítmányhoz?' : 'Melyik címre komissiózunk?') + '</h3><p>Egyszerre egy címet komissiózunk: válaszd ki a mentett címet, vagy add hozzá az újat.</p>' +
-    (saved.length ? '<div class="addr-chips" id="dlChips">' + saved.map((x, k) => '<button type="button" data-k="' + k + '">📍 ' + escapeHtml(x[1].name) + '</button>').join('') + '</div>' : '') +
-    '<button class="go-btn ghost2" id="dlNewAddr" style="width:100%;margin-top:10px">+ Új cím</button></div>';
+  const pend = os.filter(o => o.date === t0 && !o.transport && o.status === 'draft').length, anyReady = os.some(o => o.date === t0 && !o.transport && o.status !== 'draft');
+  const head = '<div class="del-intro"><h3>' + (pend ? 'Melyik címet komissiózzuk?' : anyReady ? 'Minden cím kész ✓' : 'Nincs komissiózandó cím') + '</h3><p>' +
+    (pend ? 'Egyszerre egy címet komissiózunk: koppints a címre, mérd le az árut, add meg a rekeszeket és ládákat, majd „Kész — szállításra kész”.' : anyReady ? 'Mehet a szállításra.' : 'A címeket a Bevásárlás elején adod meg. Egyedi rendelést a „+ Új rendelés” gombbal rakhatsz össze.') + '</p></div>' + buyHtml();
   const ready = os.filter(o => o.status === 'ready' || o.status === 'delivered').length, tc = {};
   os.forEach(o => CRATE_KEYS.forEach(k => { tc[k[0]] = (tc[k[0]] || 0) + (Number(o.crates[k[0]]) || 0); }));
   const ct = CRATE_KEYS.filter(k => tc[k[0]] > 0).map(k => tc[k[0]] + ' ' + k[1].toLowerCase()).join(', ') || '—';
-  let html = head + '<div class="del-stats"><div><b>' + os.length + '</b><small>cím</small></div><div><b>' + ready + '/' + os.length + '</b><small>szállításra kész</small></div><div><b style="font-size:14px;line-height:26px">' + escapeHtml(ct) + '</b><small>rakodandó edényzet</small></div></div>';
+  let html = head + '<div class="del-stats"><div><b>' + os.length + '</b><small>cím</small></div><div><b>' + ready + '/' + os.length + '</b><small>szállításra kész</small></div><div><b style="font-size:14px;line-height:26px">' + escapeHtml(ct) + '</b><small>szállítmány edényzete</small></div></div>';
   html += whHtml();
   html += os.map((o, i) => {
     const n = o.items.length, dv = o.status === 'delivered', rd = o.status === 'ready' || dv;
@@ -2462,11 +2503,6 @@ function renderDelivery() {
     else if (act === 'ready') toggleReady(i);
     else openOrder(i);
   }));
-  wrap.querySelectorAll('#dlChips button').forEach(b => b.onclick = () => {
-    const x = saved[+b.dataset.k][1], o = newOrder(); o.name = x.name; o.address = x.address || ''; o.note = x.note || '';
-    syncOrderAddress(o); DAY.orders.push(o); saveDay(); openOrder(DAY.orders.length - 1);
-  });
-  $('dlNewAddr').onclick = () => openNewDelivery(null, 'order');
   $('dlWipe').onclick = (e) => { e.preventDefault(); const n = DAY.orders.filter(o => o.status !== 'delivered').length; if (!n) { showStatus('Nincs törölhető cím.'); return; }
     if (!confirm('Biztosan törlöd mind a ' + n + ' nem kiszállított címet?')) return;
     DAY.orders = DAY.orders.filter(o => o.status === 'delivered'); logActivity('Összes nem kiszállított cím törölve'); saveDay(); renderDelivery(); };
@@ -2474,14 +2510,10 @@ function renderDelivery() {
 }
 function renderDlBar() {
   const bar = $('dlBar'); if (!bar) return;
-  const drafts = DAY.orders.filter(o => o.status === 'draft' && (o.name.trim() || o.items.length)).length;
   const ready = DAY.orders.filter(o => o.status === 'ready').length;
-  bar.innerHTML = '<div class="mrow" style="margin:0"><button class="go-btn ghost2" id="dlAdd">+ Új rendelés</button>' +
-    (drafts ? '<button class="go-btn" id="dlAll">Szállításra kész ✓ (' + drafts + ')</button>'
-            : '<button class="go-btn" id="dlNext"' + (ready ? '' : ' disabled') + '>Tovább a szállításra →</button>') + '</div>';
+  bar.innerHTML = '<div class="mrow" style="margin:0"><button class="go-btn ghost2" id="dlAdd">+ Új rendelés</button><button class="go-btn" id="dlNext"' + (ready ? '' : ' disabled') + '>Tovább a szállításra →</button></div>';
   $('dlAdd').onclick = () => openNewDelivery(null, 'order');
-  if ($('dlAll')) $('dlAll').onclick = readyAll;
-  if ($('dlNext')) $('dlNext').onclick = () => showScreen('run');
+  $('dlNext').onclick = () => showScreen('run');
 }
 function readyAll() {
   let ok = 0, bad = [];
@@ -2584,6 +2616,15 @@ function leftovers() {
   });
   return _lo;
 }
+function buyHtml() {
+  if (SESSION.date !== todayStr()) return '';
+  const t = todayStr(), rows = SESSION.items.filter(it => it.done && it.buy).map(it => {
+    const uk = toUnitKey(normUnit(it.buy.unit));
+    let ord = 0; DAY.orders.forEach(o => { if (o.date !== t || o.transport) return; o.items.forEach(x => { if (x.pid === it.pid && toUnitKey(normUnit(x.unit)) === uk) ord += Number(x.ordered !== undefined ? x.ordered : x.qty) || 0; }); });
+    return '<div class="whr"><span><b>' + escapeHtml(it.name) + '</b></span><span>vettünk <b>' + fmtQty(it.buy.qty) + '</b> · rendelve <b>' + fmtQty(r2(ord)) + '</b> ' + escapeHtml(normUnit(it.buy.unit)) + '</span></div>';
+  }).join('');
+  return rows ? '<div class="whc ship"><h4>🛒 Mit vettünk</h4>' + rows + '</div>' : '';
+}
 function whHtml() {
   const lo = leftovers(), st = DAY.warehouse || [];
   if (!lo.length && !st.length) return '';
@@ -2614,30 +2655,43 @@ function afterOrderChange() {
   if (document.body.dataset.screen === 'run') renderRun();
 }
 function syncSessionFromOrders() {
-  return;   // v3.4: a cím-lépésben nincs mennyiség, a bevásárlólista külön áll össze
+  if (SESSION.phase !== 'list') return;
   const agg = {}, t = todayStr(), r2 = x => Math.round(x * 100) / 100;
   DAY.orders.forEach(o => {
-    if (o.status !== 'draft' || o.date !== t) return;
+    if (o.status !== 'draft' || o.date !== t || o.transport) return;
     o.items.forEach(it => {
       const q = Number(it.qty) || 0; if (!(q > 0) || !PROD_BY_ID[it.pid]) return;
       const a = agg[it.pid] = agg[it.pid] || { unit: normUnit(it.unit), qty: 0, name: it.name };
       if (toUnitKey(normUnit(it.unit)) === toUnitKey(a.unit)) a.qty += q;
     });
   });
-  SESSION.items.forEach(it => { const a = agg[it.pid]; it.ord = a ? r2(a.qty) : 0; if (a) it.unit = a.unit; recalcItem(it); });
+  SESSION.items.forEach(it => { const a = agg[it.pid]; it.ord = a ? r2(a.qty) : 0; if (a) it.unit = a.unit; if (SELL[it.pid] > 0) it.sell = Number(SELL[it.pid]); recalcItem(it); });
   Object.keys(agg).forEach(pid => {
     if (findItem(pid)) return;
     const p = PROD_BY_ID[pid], a = agg[pid];
-    SESSION.items.push({ pid, name: p.name, cat: p.cat, unit: a.unit, qty: r2(a.qty), ord: r2(a.qty), extra: 0, done: false, buy: null, collected: false });
+    SESSION.items.push({ pid, name: p.name, cat: p.cat, unit: a.unit, qty: r2(a.qty), ord: r2(a.qty), extra: 0, sell: SELL[pid] > 0 ? Number(SELL[pid]) : '', done: false, buy: null, collected: false });
   });
   SESSION.items = SESSION.items.filter(it => it.ord > 0 || it.extra > 0);
 }
-let listMode = 'addr';
-function defaultListMode() { return (SESSION.phase === 'list' && !SESSION.items.length) ? 'addr' : 'items'; }
+let listMode = 'addr', ordPos = 0;
+function defaultListMode() { return SESSION.phase === 'list' ? 'addr' : 'items'; }
+function shopOrders() { const t = todayStr(); return DAY.orders.filter(o => o.date === t && o.status === 'draft' && !o.transport); }
+function curOrder() { const l = shopOrders(); return l.length ? l[Math.max(0, Math.min(ordPos, l.length - 1))] : null; }
+function orderMode() { return SESSION.phase === 'list' && !!curOrder(); }
+function selItem(pid) { return orderMode() ? (curOrder().items.find(x => x.pid === pid) || null) : findItem(pid); }
+function addToCurOrder(pid, qty, unit) {
+  const o = curOrder(), p = PROD_BY_ID[pid]; if (!o || !p) return;
+  const ex = o.items.find(x => x.pid === pid);
+  if (ex) ex.qty = r2((Number(ex.qty) || 0) + qty); else o.items.push({ pid, name: p.name, unit: normUnit(unit || p.unit), qty, price: SELL[pid] > 0 ? Number(SELL[pid]) : 0 });
+}
+function orderChanged() { saveDay(); syncSessionFromOrders(); saveSession(); }
 function setListMode(m) {
   listMode = m; $('listScreen').dataset.mode = m;
-  $('lsTitle').textContent = m === 'addr' ? 'Melyik címnek vásárolunk?' : 'Mit kell venni?';
-  if (m === 'addr') renderAddrStep(); else renderCatalog();
+  const who = $('lsWho'), om = m === 'items' && orderMode();
+  who.classList.toggle('on', om);
+  if (om) { const l = shopOrders(), o = curOrder(); who.innerHTML = '<small>MOST EZ A CÍM RENDELÉSE · ' + (Math.min(ordPos, l.length - 1) + 1) + '/' + l.length + '</small><b>' + escapeHtml(o.name || 'Névtelen cím') + '</b>'; }
+  $('lsTitle').textContent = m === 'addr' ? 'Melyik címnek vásárolunk?' : (om ? 'Mit kérnek?' : 'Mit kell venni?');
+  if (m === 'addr') renderAddrStep(); else { renderCatalog(); $('lsScroll').scrollTop = 0; }
   updateListBar();
 }
 function todayAddrOrders() { const t = todayStr(); return DAY.orders.map((o, i) => [o, i]).filter(x => x[0].date === t && x[0].status === 'draft'); }
@@ -2651,18 +2705,19 @@ function renderAddrStep() {
   const saved = Object.keys(ADDRS).map(k => ADDRS[k]).filter(a => a && a.name && !used.has(normText(a.name))).sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0)).slice(0, 30);
   box.innerHTML = '<div class="lsa"><h3>📍 Mentett partnerek</h3>' + (saved.length ? '<p>Koppints a névre a hozzáadáshoz.</p><div class="addr-chips" id="adChips">' + saved.map((a, k) => '<button type="button" data-k="' + k + '">' + escapeHtml(a.name) + '</button>').join('') + '</div>' : '<p style="margin:0">Még nincs mentett partner — add meg lent az elsőt, és mentődik.</p>') + '</div>' +
     '<div class="lsa"><h3>➕ Új cím</h3><div class="oedit"><input type="text" id="adName" placeholder="Név (étterem / szálloda)" autocomplete="off"><input type="text" id="adAddr" placeholder="Cím (utca, házszám)" autocomplete="off"><input type="text" id="adNote" placeholder="Megjegyzés" autocomplete="off"></div><button class="go-btn" id="adAdd">Hozzáadás</button></div>' +
-    '<div class="lsa"><h3>🛒 Ma ide vásárolunk (' + cur.length + ')</h3>' + (cur.length ? cur.map(x => '<div class="lsac" data-i="' + x[1] + '"><div><b>' + escapeHtml(x[0].name || 'Névtelen') + '</b><small>' + escapeHtml([x[0].address, x[0].note].filter(Boolean).join(' · ') || 'nincs cím megadva') + '</small></div><button class="x" aria-label="törlés">✕</button></div>').join('') : '<p style="margin:0">Még nincs hozzáadva cím.</p>') + '</div>';
+    '<div class="lsa"><h3>🛒 Ma ide vásárolunk (' + cur.length + ')</h3>' + (cur.length ? cur.map(x => '<div class="lsac" data-i="' + x[1] + '"><div><b>' + escapeHtml(x[0].name || 'Névtelen') + '</b><small>' + escapeHtml(itemsLine(x[0]) || [x[0].address, x[0].note].filter(Boolean).join(' · ') || 'még nincs termék') + '</small></div><button class="x" aria-label="törlés">✕</button></div>').join('') : '<p style="margin:0">Még nincs hozzáadva cím.</p>') + '</div>';
   box.querySelectorAll('#adChips button').forEach(b => b.onclick = () => { const a = saved[+b.dataset.k]; addAddrOrder(a.name, a.address, a.note); });
   $('adAdd').onclick = () => {
     const n = $('adName').value.trim(); if (!n) { showStatus('⚠️ Add meg a cím nevét!'); return; }
     addAddrOrder(n, $('adAddr').value.trim(), $('adNote').value.trim());
   };
+  box.querySelectorAll('.lsac > div').forEach(d => d.onclick = () => { const o = DAY.orders[+d.closest('.lsac').dataset.i]; ordPos = Math.max(0, shopOrders().indexOf(o)); setListMode('items'); });
   box.querySelectorAll('.lsac .x').forEach(b => b.onclick = () => {
     const o = DAY.orders[+b.closest('.lsac').dataset.i]; if (!o) return;
     DAY.orders.splice(DAY.orders.indexOf(o), 1); purgeArchOrder(o); saveDay(); renderAddrStep();
   });
 }
-$('lsAddrNext').addEventListener('click', () => setListMode('items'));
+$('lsAddrNext').addEventListener('click', () => { ordPos = 0; setListMode('items'); });
 function resetShopping() {
   if (!confirm('Biztosan törlöd a mai bevásárlást (lista, kipipált tételek)?')) return;
   const t = todayStr(), open = DAY.orders.filter(o => o.status !== 'delivered' && o.date === t).length;
@@ -2831,7 +2886,14 @@ function renderRun() {
       '<div class="om"><span><b>' + o.items.length + '</b> tétel</span><span>📦 ' + (cratesText(o) ? escapeHtml(cratesText(o)) : 'nincs edényzet') + '</span></div><div class="ilist">' + escapeHtml(itemsLine(o)) + '</div>' +
       (balTag(debtOf(o)) ? '<div>' + balTag(debtOf(o)) + '</div>' : '') + '</div>';
   };
-  if (todo.length) html += '<div class="rsec">Válaszd ki, melyiket viszed ki</div>' + todo.map(card).join('');
+  const dl = (d) => { const p = String(d).split('-'); return (+p[1]) + '. ' + (+p[2]) + '.' + (d === todayStr() ? ' (ma)' : ''); };
+  const groups = {}; todo.forEach(i => { (groups[os[i].date || todayStr()] = groups[os[i].date || todayStr()] || []).push(i); });
+  Object.keys(groups).sort().forEach(d => {
+    const tot = {}; groups[d].forEach(i => CRATE_KEYS.forEach(k => { tot[k[0]] = (tot[k[0]] || 0) + (Number(os[i].crates[k[0]]) || 0); }));
+    html += '<div class="whc ship"><h4>🚚 Szállítmány — ' + dl(d) + '</h4><div class="whr"><b>Összesen</b><b>' + escapeHtml(cratesText({ crates: tot }) || 'nincs edényzet') + '</b></div>' +
+      groups[d].map(i => '<div class="whr"><span>' + escapeHtml(os[i].name) + '</span><span>' + escapeHtml(cratesText(os[i]) || '—') + '</span></div>').join('') + '</div>' +
+      '<div class="rsec">Válaszd ki, melyiket viszed ki</div>' + groups[d].map(card).join('');
+  });
   if (done.length) html += '<div class="rsec">Kiszállítva</div>' + done.map(card).join('');
   if (done.length) html += '<p style="text-align:center;margin-top:14px"><a href="#" id="rnWipe" style="color:#b3261e;font-size:13px">🗑 Kiszállított címek törlése</a></p>';
   if (draft.length) html += '<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:14px">' + draft.length + ' cím még nincs szállításra készre jelölve.</p>';

@@ -158,3 +158,8 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Komissiózás: a mentett címek azonnal előjönnek; egy cím kiválasztása után a szerkesztőben „✓ Kész — szállításra kész”, utána „Még egy cím a szállítmányhoz?” (következő mentett cím vagy új cím).
 - Edényzet: csak tartozás van (náluk lévő edényzet); negatív egyenleg megszűnt, a feliratok „tartozás”-ra váltottak.
 - Navigáció: a böngésző/telefon „vissza” gombja az alkalmazás menüpontjai között lép (előző képernyő), megnyitott ablak/panel esetén azt zárja be.
+
+## v3.8 – Címenkénti bevásárlás-előkészítés, szállítmány
+- Bevásárlás: címek kiválasztása után címenként (nagy betűs „MOST EZ A CÍM RENDELÉSE”) adod meg a zöldségeket és mennyiségeket; „Következő cím” gombbal lépsz tovább, az utolsónál „Kész — indulhat a bevásárlás”. A térképnézetben az összesített (zöldség/mennyiség) checklist jön.
+- Komissiózás: nincs „Új cím”; „Mit vettünk” összesítő (vettünk / rendelve), egyszerre egy cím, a rendelt mennyiség a tételnél látszik, a mért mennyiség és rekesz/láda a szerkesztőben.
+- Szállítás: szállítmányonként összesítő (hány rekesz/láda) és címenkénti bontás.
