@@ -171,3 +171,7 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 ## v3.10 – Egység választása a rendelésnél (doboz, db, csomó…)
 - Címenkénti rendelésfelvételnél a terméken egység-választó (kg, doboz, db, csomó, köteg, vödör, csomag, rekesz, láda); a termék utoljára használt egysége megjegyződik.
 - A bevásárlás checklistje egység szerint külön sort ad (pl. Sárgarépa 5 kg + Sárgarépa 2 doboz); az eladási ár is egységenként tárolódik.
+
+## v3.11 – Zsák egység, Pénztár
+- Új egység a rendelésfelvételnél: zsák.
+- Új kezdőképernyő menüpont: 💰 Pénztár. Profilonként (bejelentkezett felhasználónként) külön pénztár: „+ Bevétel” (mikor mennyit kaptam, kitől) és „− Kiadás” (mire mennyit költöttem); a „Nálad lévő pénz” egyenleg automatikusan számolódik, látszik a havi bevétel/kiadás, napi bontás és tételenkénti egyenleg. Tétel módosítható/törölhető. Felhő: piacTerkep/wallet/<felhasználónév>, offline is működik.

@@ -279,6 +279,24 @@
   .bal-box { background: var(--g50); border: 1.5px solid var(--line); border-radius: 16px; padding: 10px 12px; margin-top: 10px; font-size: 14.5px; }
   .bal-box b { color: var(--g800); } .bal-box .big { font-size: 17px; font-weight: 800; }
   .navlink { display: inline-block; margin-top: 6px; color: var(--blue); font-weight: 700; text-decoration: none; font-size: 14.5px; }
+  /* ===== v3.11 PÉNZTÁR ===== */
+  body[data-screen=wallet] #walScreen { opacity: 1; pointer-events: auto; transform: none; }
+  #walScreen .ls-scroll { padding-bottom: 120px; }
+  .wl-user { font-size: 12.5px; font-weight: 700; opacity: .85; min-width: 44px; text-align: right; }
+  .wl-hero { background: #fff; border-radius: 22px; padding: 18px 16px; margin: 12px 0; box-shadow: var(--shadow); text-align: center; animation: riseIn .5s var(--ease) both; }
+  .wl-hero small { display: block; color: var(--muted); font-weight: 700; font-size: 12.5px; text-transform: uppercase; letter-spacing: .5px; }
+  .wl-hero b { display: block; font-size: 38px; color: var(--g800); margin: 4px 0 6px; letter-spacing: -.5px; }
+  .wl-hero b.neg { color: #c62828; }
+  .wl-hero .wl-m { font-size: 13.5px; color: var(--muted); } .wl-hero .wl-m i { font-style: normal; font-weight: 800; }
+  .wl-in { color: #1b7a3a; } .wl-out { color: #c62828; }
+  .wl-day { margin: 14px 2px 4px; font-size: 12.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; display: flex; justify-content: space-between; }
+  .wl-row { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 16px; padding: 11px 12px; margin: 6px 0; box-shadow: var(--shadow-s); cursor: pointer; }
+  .wl-row .wl-ic { font-size: 22px; flex: none; } .wl-row .wl-tx { flex: 1; min-width: 0; } .wl-row .wl-tx b { display: block; font-size: 15px; overflow-wrap: anywhere; } .wl-row .wl-tx small { color: var(--muted); font-size: 12px; }
+  .wl-row .wl-am { font-weight: 800; font-size: 16px; white-space: nowrap; }
+  .wl-seg { display: flex; gap: 8px; margin: 4px 0 8px; } .wl-seg button { flex: 1; border: 2px solid var(--line); background: #fff; border-radius: 14px; padding: 12px; font-size: 16px; font-weight: 800; cursor: pointer; }
+  .wl-seg button.on.in { background: #e3f6e8; border-color: #1b7a3a; color: #1b7a3a; } .wl-seg button.on.out { background: #fde7e7; border-color: #c62828; color: #c62828; }
+  .wl-f { width: 100%; box-sizing: border-box; font-size: 18px; padding: 12px; border: 1.5px solid var(--line); border-radius: 14px; }
+  .wl-f.amt { font-size: 26px; font-weight: 800; text-align: center; }
   /* ===== v2.3 RIPORTOK ===== */
   body[data-screen=report] #repScreen { opacity: 1; pointer-events: auto; transform: none; }
   #repScreen .ls-scroll { padding-bottom: 40px; }
@@ -587,6 +605,7 @@
     <button class="big-card" id="goShop"><span class="bc-ico">🛒</span><span><b>Bevásárlás</b><small>Lista összeállítása, piac, térkép, checklist</small></span></button>
     <button class="big-card" id="goDeliver"><span class="bc-ico">📦</span><span><b>Komissiózás</b><small>Címek, mennyiségek, szállítólevél</small></span></button>
     <button class="big-card" id="goRun"><span class="bc-ico">🚚</span><span><b>Szállítás</b><small>Kiszállítás, edényzet visszavétele</small></span></button>
+    <button class="big-card alt" id="goWallet"><span class="bc-ico">💰</span><span><b>Pénztár</b><small>Bevételek, kiadások, nálam lévő pénz</small></span></button>
     <button class="big-card alt" id="goReport"><span class="bc-ico">📊</span><span><b>Riportok</b><small>Forgalom, árak, edényzet-tartozás</small></span></button>
     <button class="big-card alt" id="goMap"><span class="bc-ico">🗺️</span><span><b>Csak térkép és árazás</b><small>Standok, árak felmérése lista nélkül</small></span></button>
     <div id="authLine"></div>
@@ -651,6 +670,19 @@
     <div class="rchips" id="rpChips"><button data-d="7" class="on">7 nap</button><button data-d="30">30 nap</button><button data-d="90">90 nap</button><button data-d="0">Mind</button></div>
   </div>
   <div class="ls-scroll" id="rpScroll"></div>
+</div>
+
+<!-- ====== v3.11 PÉNZTÁR ====== -->
+<div id="walScreen" class="screen">
+  <div class="ls-head">
+    <div class="ls-top">
+      <button class="icon-btn" id="wlBack">← Vissza</button>
+      <h2>💰 Pénztár</h2>
+      <span id="wlUser" class="wl-user"></span>
+    </div>
+  </div>
+  <div class="ls-scroll" id="wlScroll"></div>
+  <div class="ls-bar" id="wlBar"><div class="mrow" style="margin:0"><button class="go-btn ghost2" id="wlOut">− Kiadás</button><button class="go-btn" id="wlIn">+ Bevétel</button></div></div>
 </div>
 
 <div id="loginScreen" class="show checking">
@@ -753,7 +785,7 @@ function onSignedIn(user) {
   if (!fbListening) {
     fbListening = true;
     firebaseReady = true;
-    listenVendors(); listenPurchases(); listenSession(); listenDay();
+    listenVendors(); listenPurchases(); listenSession(); listenDay(); try { listenWallet(); } catch (e) { /* ignore */ }
     try { refreshKnownItems(); } catch (e) { /* ignore */ }
     showStatus('✓ Szinkron bekapcsolva (' + String(user.email || 'bejelentkezve').split('@')[0] + ')', 3000);
   }
@@ -1947,11 +1979,12 @@ function showScreen(name, fromPop) {
   if (!fromPop && name !== curScr) { if (ovHist) ovCloseHist(); navPush(name); }
   curScr = name;
   document.body.dataset.screen = name;
-  if (name === 'home') { updateHomeCard(); updateDeliverSub(); }
+  if (name === 'home') { updateHomeCard(); updateDeliverSub(); try { updateWalSub(); } catch (e) { /* ignore */ } }
   if (name === 'list') setListMode(defaultListMode());
   if (name === 'deliver') renderDelivery();
   if (name === 'run') renderRun();
   if (name === 'report') renderReport();
+  if (name === 'wallet') renderWallet();
   if (name === 'shop' || name === 'map') {
     if (typeof map !== 'undefined' && map) setTimeout(() => map.invalidateSize(), 60);
     updateFab();
@@ -2384,7 +2417,7 @@ function renderCollectedDone() {
   $('cdNext').onclick = () => { closePanel(); showScreen('deliver'); };
 }
 /* ================= v2.1 KISZÁLLÍTÁS / KOMISSIÓZÁS ================= */
-const DEL_UNITS = ['kg', 'db', 'csomó', 'köteg', 'doboz', 'vödör', 'csomag', 'rekesz', 'láda'];
+const DEL_UNITS = ['kg', 'db', 'csomó', 'köteg', 'doboz', 'zsák', 'vödör', 'csomag', 'rekesz', 'láda'];
 const CRATE_KEYS = [['rekesz', 'Rekesz'], ['lada', 'Láda'], ['raklap', 'Raklap']];
 function normUnit(u) { return u === 'lada' ? 'láda' : (u || 'kg'); }
 function rid() { return 'o_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -3178,6 +3211,99 @@ window.addEventListener('load', () => initMap());
 setupLogin();
 showScreen('home');
 
+
+/* ================= v3.11 PÉNZTÁR (profilonként külön) ================= */
+let WAL = {}, walSynced = false;
+function walUser() { return String(who()).split('@')[0].toLowerCase().replace(/[^a-z0-9_-]+/g, '_') || 'helyi'; }
+function walLocalKey() { return 'piaci_wallet_' + walUser(); }
+function loadWal() { try { WAL = JSON.parse(localStorage.getItem(walLocalKey()) || '{}') || {}; } catch (e) { WAL = {}; } }
+function saveWalLocal() { try { localStorage.setItem(walLocalKey(), JSON.stringify(WAL)); } catch (e) { /* ignore */ } }
+function walRef() { return db.ref('wallet/' + walUser()); }
+function listenWallet() {
+  loadWal(); walSynced = false; updateWalSub();
+  if (!firebaseReady || !db) return;
+  walRef().on('value', snap => {
+    const remote = snap.val() || {};
+    if (!walSynced) {   // az offline felvett tételek felkerülnek a felhőbe
+      walSynced = true;
+      Object.keys(WAL).forEach(id => { if (!remote[id]) { remote[id] = WAL[id]; try { walRef().child(id).set(WAL[id]); } catch (e) { /* ignore */ } } });
+    }
+    WAL = remote; saveWalLocal(); updateWalSub();
+    if (curScr === 'wallet' && !$('modal').classList.contains('open')) renderWallet();
+  });
+}
+function walToday() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function fmtFt(n) { n = Math.round(Number(n) || 0); return (n < 0 ? '−' : '') + String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') + ' Ft'; }
+function walList() { return Object.keys(WAL).map(k => WAL[k]).filter(e => e && Number(e.amount) > 0); }
+function walBalance() { return walList().reduce((a, e) => a + (e.type === 'in' ? 1 : -1) * Number(e.amount), 0); }
+function updateWalSub() {
+  const el = document.querySelector('#goWallet small'); if (!el) return;
+  const n = walList().length;
+  el.textContent = n ? 'Nálad lévő pénz: ' + fmtFt(walBalance()) : 'Bevételek, kiadások, nálam lévő pénz';
+}
+function renderWallet() {
+  $('wlUser').textContent = walUser() === 'helyi' ? '' : walUser();
+  const asc = walList().sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.ts || 0) - (b.ts || 0));
+  let run = 0; const after = {};
+  asc.forEach(e => { run += (e.type === 'in' ? 1 : -1) * Number(e.amount); after[e.id] = run; });
+  const bal = run, mon = walToday().slice(0, 7);
+  let mi = 0, mo = 0; asc.forEach(e => { if ((e.date || '').slice(0, 7) === mon) { if (e.type === 'in') mi += Number(e.amount); else mo += Number(e.amount); } });
+  let html = '<div class="wl-hero"><small>Nálad lévő pénz</small><b class="' + (bal < 0 ? 'neg' : '') + '">' + fmtFt(bal) + '</b>' +
+    '<div class="wl-m">Ebben a hónapban: <i class="wl-in">+' + fmtFt(mi) + '</i> bevétel · <i class="wl-out">−' + fmtFt(mo) + '</i> kiadás</div></div>';
+  const desc = asc.slice().reverse();
+  if (!desc.length) html += '<div class="empty">Még nincs bejegyzés.<br>Írd be, mikor mennyi pénzt kaptál („+ Bevétel”), és mire mennyit költöttél („− Kiadás”).</div>';
+  let curDay = null;
+  desc.forEach(e => {
+    if (e.date !== curDay) {
+      curDay = e.date;
+      const dd = new Date((e.date || walToday()) + 'T12:00:00'), dayList = desc.filter(x => x.date === e.date);
+      const dt = dayList.reduce((a, x) => a + (x.type === 'in' ? 1 : -1) * Number(x.amount), 0);
+      html += '<div class="wl-day"><span>' + escapeHtml(dd.toLocaleDateString('hu-HU', { month: 'long', day: 'numeric', weekday: 'long' })) + '</span><span>' + (dt >= 0 ? '+' : '') + fmtFt(dt) + '</span></div>';
+    }
+    const isIn = e.type === 'in';
+    html += '<div class="wl-row" data-id="' + escapeHtml(e.id) + '"><span class="wl-ic">' + (isIn ? '⬆️' : '⬇️') + '</span><span class="wl-tx"><b>' + escapeHtml(e.note || (isIn ? 'Bevétel' : 'Kiadás')) + '</b><small>egyenleg utána: ' + fmtFt(after[e.id]) + '</small></span>' +
+      '<span class="wl-am ' + (isIn ? 'wl-in' : 'wl-out') + '">' + (isIn ? '+' : '−') + fmtFt(e.amount) + '</span></div>';
+  });
+  $('wlScroll').innerHTML = html;
+}
+function openWalEntry(type, id) {
+  const ex = id ? WAL[id] : null; let t = ex ? ex.type : type;
+  const notes = []; walList().slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).forEach(e => { if (e.note && !notes.includes(e.note) && notes.length < 40) notes.push(e.note); });
+  openModal('<h3>' + (ex ? 'Tétel szerkesztése' : 'Új tétel') + '</h3>' +
+    '<div class="wl-seg"><button class="in" data-t="in">⬆️ Bevétel</button><button class="out" data-t="out">⬇️ Kiadás</button></div>' +
+    '<label class="flabel">Összeg (Ft)</label><input class="wl-f amt" id="wlAmt" type="number" inputmode="decimal" min="0" step="any" placeholder="0" value="' + (ex ? ex.amount : '') + '">' +
+    '<label class="flabel" id="wlNoteL"></label><input class="wl-f" id="wlNote" list="wlNotes" type="text" maxlength="80" value="' + escapeHtml(ex ? ex.note : '') + '"><datalist id="wlNotes">' + notes.map(n => '<option value="' + escapeHtml(n) + '">').join('') + '</datalist>' +
+    '<label class="flabel">Dátum</label><input class="wl-f" id="wlDate" type="date" value="' + (ex ? ex.date : walToday()) + '">' +
+    '<div class="mrow"><button class="go-btn ghost2" id="wlCancel">Mégse</button>' + (ex ? '<button class="go-btn ghost2" id="wlDel" style="color:#c62828">Törlés</button>' : '') + '<button class="go-btn" id="wlSave">Mentés</button></div>');
+  const paint = () => {
+    document.querySelectorAll('.wl-seg button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+    $('wlNoteL').textContent = t === 'in' ? 'Honnan / kitől kaptam' : 'Mire költöttem';
+    $('wlNote').placeholder = t === 'in' ? 'pl. Hotel Panoráma, napi bevétel' : 'pl. benzin, parkolás, ebéd';
+  };
+  document.querySelectorAll('.wl-seg button').forEach(b => b.onclick = () => { t = b.dataset.t; paint(); });
+  paint();
+  $('wlCancel').onclick = closeModal;
+  if (ex) $('wlDel').onclick = () => {
+    if (!confirm('Biztosan törlöd ezt a tételt?')) return;
+    delete WAL[id]; saveWalLocal(); if (firebaseReady && db) { try { walRef().child(id).remove(); } catch (e) { /* ignore */ } }
+    closeModal(); renderWallet(); updateWalSub();
+  };
+  $('wlSave').onclick = () => {
+    const amount = Math.round(Number(String($('wlAmt').value).replace(',', '.')) * 100) / 100;
+    if (!(amount > 0)) { showStatus('Add meg az összeget.'); return; }
+    const e = { id: ex ? ex.id : 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ts: ex ? ex.ts : Date.now(), date: $('wlDate').value || walToday(), type: t, amount, note: $('wlNote').value.trim() };
+    WAL[e.id] = e; saveWalLocal();
+    if (firebaseReady && db) { try { walRef().child(e.id).set(e); } catch (x) { /* ignore */ } }
+    closeModal(); renderWallet(); updateWalSub();
+  };
+  setTimeout(() => { try { $('wlAmt').focus(); } catch (x) { /* ignore */ } }, 120);
+}
+$('goWallet').addEventListener('click', () => showScreen('wallet'));
+$('wlBack').addEventListener('click', () => goBack());
+$('wlIn').addEventListener('click', () => openWalEntry('in'));
+$('wlOut').addEventListener('click', () => openWalEntry('out'));
+$('wlScroll').addEventListener('click', ev => { const r = ev.target.closest('.wl-row'); if (r) openWalEntry(null, r.dataset.id); });
+loadWal(); updateWalSub();
 </script>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
