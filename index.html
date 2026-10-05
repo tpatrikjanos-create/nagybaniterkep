@@ -1003,15 +1003,35 @@ function setupLongPress() {
 let myLocationMarker = null;
 let myAccuracyCircle = null;
 
-function startLocationTracking() {
-  if (!navigator.geolocation) {
-    showStatus("A böngésződ nem támogatja a GPS-t");
-    return;
-  }
-  navigator.geolocation.watchPosition(
-    pos => updateMyLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
-    err => showStatus("GPS hiba: " + err.message, 4000),
-    { enableHighAccuracy: true, maximumAge: 5000 }
+let gpsState = 'init', gpsMsg = '', gpsWatch = null, gpsLow = false, gpsOutKm = 0;
+function setGpsBtn(st, txt, msg) {
+  gpsState = st; if (msg !== undefined) gpsMsg = msg;
+  const b = document.getElementById('gpsBtn'); if (!b) return;
+  b.textContent = txt; b.style.background = st === 'ok' ? '#1976d2' : (st === 'off' ? '#c62828' : '#757575');
+}
+function startLocationTracking(force) {
+  if (!navigator.geolocation) { setGpsBtn('off', '📍 GPS ✗', 'A böngésző nem támogatja a helymeghatározást.'); return; }
+  if (window.isSecureContext === false) { setGpsBtn('off', '📍 GPS ✗', 'A GPS csak https címen működik (a megnyitott fájl/cím nem biztonságos). Nyisd meg a GitHub Pages / https címről.'); return; }
+  if (gpsWatch != null) { if (!force) return; try { navigator.geolocation.clearWatch(gpsWatch); } catch (e) { /* ignore */ } gpsWatch = null; }
+  setGpsBtn('wait', '📍 Keresés…', 'Helymeghatározás folyamatban…');
+  gpsWatch = navigator.geolocation.watchPosition(
+    pos => {
+      const c = pos.coords; updateMyLocation(c.latitude, c.longitude, c.accuracy);
+      const out = Math.abs(c.latitude - MARKET_CENTER.lat) > MARKET_RADIUS_DEG || Math.abs(c.longitude - MARKET_CENTER.lng) > MARKET_RADIUS_DEG;
+      if (out) {
+        const dy = (c.latitude - MARKET_CENTER.lat) * 111.2, dx = (c.longitude - MARKET_CENTER.lng) * 111.2 * Math.cos(c.latitude * Math.PI / 180);
+        gpsOutKm = Math.hypot(dx, dy);
+        setGpsBtn('ok', '📍 GPS ✓', 'Nem a piacon vagy: kb. ' + (gpsOutKm < 10 ? gpsOutKm.toFixed(1) : Math.round(gpsOutKm)) + ' km-re vagy a Nagybanitól, ezért a kék pont a térképen nem látható (a térkép csak a piacot mutatja).');
+      } else { gpsOutKm = 0; setGpsBtn('ok', '📍 GPS ✓', ''); }
+    },
+    err => {
+      if (err.code === 1) {
+        try { navigator.geolocation.clearWatch(gpsWatch); } catch (e) { /* ignore */ } gpsWatch = null;
+        setGpsBtn('off', '📍 GPS ✗', 'A helymeghatározás le van tiltva ehhez az oldalhoz. Engedélyezd a böngésző címsorában a 🔒 / ⓘ ikonnál (Engedélyek → Hely), és az Android Beállításokban is legyen bekapcsolva a Hely; utána koppints ide.');
+      } else if (!gpsLow) { gpsLow = true; startLocationTracking(true); }
+      else setGpsBtn('wait', '📍 Nincs jel', 'Nincs GPS-jel (' + (err.message || 'időtúllépés') + '). Menj nyílt helyre, és kapcsold be a Helyet; az app folyamatosan újrapróbálja.');
+    },
+    { enableHighAccuracy: !gpsLow, maximumAge: 5000, timeout: 20000 }
   );
 }
 
@@ -1019,14 +1039,15 @@ function updateMyLocation(lat, lng, accuracy) {
   const pos = { lat, lng };
 
   if (!myLocationMarker) {
-    myLocationMarker = {
+    const m = {
       ll: pos,
       getPosition() { const p = this.ll; return { lat: () => p.lat, lng: () => p.lng }; },
     };
-    myAccuracyCircle = L.circle([lat, lng], { radius: accuracy || 10, color: '#1a73e8', weight: 1, opacity: 0.4, fillColor: '#1a73e8', fillOpacity: 0.15, interactive: false }).addTo(map);
-    myLocationMarker.dot = L.circleMarker([lat, lng], { radius: 9, color: '#ffffff', weight: 3, fillColor: '#1a73e8', fillOpacity: 1 }).addTo(map);
-    myLocationMarker.dot.bindTooltip('Itt állsz – kattints ide új stand felvételéhez');
-    myLocationMarker.dot.on('click', () => handleNewPosition(myLocationMarker.ll.lat, myLocationMarker.ll.lng));
+    const acc = L.circle([lat, lng], { radius: accuracy || 10, color: '#1a73e8', weight: 1, opacity: 0.4, fillColor: '#1a73e8', fillOpacity: 0.15, interactive: false }).addTo(map);
+    m.dot = L.circleMarker([lat, lng], { radius: 9, color: '#ffffff', weight: 3, fillColor: '#1a73e8', fillOpacity: 1 }).addTo(map);
+    m.dot.bindTooltip('Itt állsz – kattints ide új stand felvételéhez');
+    m.dot.on('click', () => handleNewPosition(m.ll.lat, m.ll.lng));
+    myAccuracyCircle = acc; myLocationMarker = m;
   } else {
     myLocationMarker.ll = pos;
     myLocationMarker.dot.setLatLng([lat, lng]);
@@ -1180,11 +1201,13 @@ function cleanupTemporaryVendors() {
 
 /* ====== GPS GOMB ====== */
 document.getElementById('gpsBtn').addEventListener('click', () => {
-  if (myLocationMarker) {
+  if (myLocationMarker && !gpsOutKm) {
     map.setView([myLocationMarker.ll.lat, myLocationMarker.ll.lng], MARKET_ZOOM);
     showStatus("A kék pontra kattintva, vagy a térképen hosszan nyomva vehetsz fel új standot.");
   } else {
-    showStatus("Helymeghatározás folyamatban...", 4000);
+    const m0 = gpsMsg;
+    if (gpsState === 'off' || gpsState === 'wait' || gpsState === 'init') startLocationTracking(true);
+    showStatus(m0 || 'Helymeghatározás folyamatban…', 8000);
   }
 });
 
@@ -1987,6 +2010,7 @@ function showScreen(name, fromPop) {
   if (name === 'wallet') renderWallet();
   if (name === 'shop' || name === 'map') {
     if (typeof map !== 'undefined' && map) setTimeout(() => map.invalidateSize(), 60);
+    try { if (gpsState !== 'ok') startLocationTracking(gpsState === 'off'); } catch (e) { /* ignore */ }
     updateFab();
   }
   closePanel();

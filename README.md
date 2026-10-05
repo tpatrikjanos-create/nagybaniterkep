@@ -175,3 +175,8 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 ## v3.11 – Zsák egység, Pénztár
 - Új egység a rendelésfelvételnél: zsák.
 - Új kezdőképernyő menüpont: 💰 Pénztár. Profilonként (bejelentkezett felhasználónként) külön pénztár: „+ Bevétel” (mikor mennyit kaptam, kitől) és „− Kiadás” (mire mennyit költöttem); a „Nálad lévő pénz” egyenleg automatikusan számolódik, látszik a havi bevétel/kiadás, napi bontás és tételenkénti egyenleg. Tétel módosítható/törölhető. Felhő: piacTerkep/wallet/<felhasználónév>, offline is működik.
+
+## v3.12 – Kék pont (GPS) javítás
+- A GPS gomb állapotot mutat: „Keresés…”, „GPS ✓”, „GPS ✗ / Nincs jel”; rákoppintva megmondja az okot és újrapróbálja.
+- Letiltott helyengedély, nem https cím, gyenge jel (automatikus átváltás alacsony pontosságra) és „nem a piacon vagy” (a térkép csak a Nagybanit mutatja, ilyenkor a pont nincs a látható területen, a távolságot kiírja) külön üzenetet kap.
+- A kék pont létrehozása hibatűrőbb; a térkép megnyitásakor az app újra megpróbálja a helymeghatározást.
