@@ -541,6 +541,7 @@
   #lsOrdNote { display: none; width: 100%; margin: 0 0 8px; padding: 9px 12px; border-radius: 4px; border: 1px solid #a8700a; background: #fff8e1; font-size: 15px; }
   #listScreen[data-mode=items] #lsOrdNote.on { display: block; }
   .pctrl .pnote { width: 100%; min-height: 0; font: inherit; font-size: 12.5px; margin-top: 4px; padding: 5px 6px; border: 1.5px solid #9cc0e8; border-radius: 6px; resize: none; background: #fff; }
+  .pctrl .punitsel { width: 100%; margin-top: 4px; font-size: 13px; padding: 4px; border: 1.5px solid #9cc0e8; border-radius: 6px; background: #fff; }
   .cnote { display: block; color: #8a4b00; font-weight: 700; }
   .irow .inote { grid-column: 1 / -1; } .irow .inote input { width: 100%; background: #fff8e1; border-color: #e0a526; }
   .whc.ship { background: #eaf4ff; border-color: #9cc0e8; } .whc.ship h4 { color: #1a4fa3; }
@@ -2019,8 +2020,8 @@ function updateCard(pid) {
   if (!it) { el.classList.remove('selected'); ctrl.innerHTML = ''; return; }
   el.classList.add('selected');
   ctrl.innerHTML = '<div class="prow"><button data-act="dec" aria-label="kevesebb">−</button><input type="number" inputmode="decimal" step="any" min="0" value="' + it.qty + '" aria-label="vásárlandó mennyiség"><button data-act="inc" aria-label="több">+</button></div>' +
-    '<div class="plab">Venni: <b>' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + '</b>' + ((orderMode() ? SELL[pid] : it.sell) > 0 ? ' · eladás: <b>' + fmtQty(orderMode() ? SELL[pid] : it.sell) + ' Ft/' + escapeHtml(unitLabel(it.unit)) + '</b>' : '') + '</div>' +
-    '<input type="number" class="psell" inputmode="decimal" step="any" min="0" placeholder="Eladási ár Ft/' + escapeHtml(unitLabel(it.unit)) + '" value="' + ((orderMode() ? SELL[pid] : it.sell) > 0 ? (orderMode() ? SELL[pid] : it.sell) : '') + '">';
+    (orderMode() ? unitSelHtml(it.unit) : '') + '<div class="plab">Venni: <b>' + fmtQty(it.qty) + ' ' + escapeHtml(unitLabel(it.unit)) + '</b>' + ((orderMode() ? SELL[sellKeyFor(pid, it.unit)] : it.sell) > 0 ? ' · eladás: <b>' + fmtQty(orderMode() ? SELL[sellKeyFor(pid, it.unit)] : it.sell) + ' Ft/' + escapeHtml(unitLabel(it.unit)) + '</b>' : '') + '</div>' +
+    '<input type="number" class="psell" inputmode="decimal" step="any" min="0" placeholder="Eladási ár Ft/' + escapeHtml(unitLabel(it.unit)) + '" value="' + ((orderMode() ? SELL[sellKeyFor(pid, it.unit)] : it.sell) > 0 ? (orderMode() ? SELL[sellKeyFor(pid, it.unit)] : it.sell) : '') + '">';
   if (orderMode()) ctrl.insertAdjacentHTML('beforeend', '<textarea class="pnote" rows="2" placeholder="Megjegyzés (pl. nagy fejű)">' + escapeHtml(it.note || '') + '</textarea>');
 }
 function renderCatalog() {
@@ -2062,7 +2063,7 @@ $('catalogWrap').addEventListener('click', (e) => {
       if (nq <= 0) o.items.splice(o.items.indexOf(oi), 1); else oi.qty = nq;
     } else if (e.target.closest('.pctrl')) { return; }
     else if (oi) o.items.splice(o.items.indexOf(oi), 1);
-    else o.items.push({ pid, name: p.name, unit: normUnit(p.unit), qty: 1, price: SELL[pid] > 0 ? Number(SELL[pid]) : 0 });
+    else { const lu = lastUnit(pid, p.unit); o.items.push({ pid, name: p.name, unit: lu, qty: 1, price: SELL[sellKeyFor(pid, lu)] > 0 ? Number(SELL[sellKeyFor(pid, lu)]) : 0 }); }
     orderChanged(); updateCard(pid); updateListBar(); return;
   }
   if (btn) {
@@ -2080,12 +2081,13 @@ $('catalogWrap').addEventListener('click', (e) => {
   if (filterSel && !findItem(pid)) card.remove();
 });
 $('catalogWrap').addEventListener('change', (e) => {
-  if (!e.target.matches('.pctrl input, .pctrl textarea')) return;
+  if (!e.target.matches('.pctrl input, .pctrl textarea, .pctrl select')) return;
   const pid = e.target.closest('.pcard').dataset.pid;
   if (orderMode()) {
     const o = curOrder(), oi = o.items.find(x => x.pid === pid); if (!oi) return;
+    if (e.target.classList.contains('punitsel')) { oi.unit = e.target.value; setLastUnit(pid, oi.unit); orderChanged(); updateCard(pid); updateListBar(); return; }
     if (e.target.classList.contains('pnote')) { oi.note = e.target.value.trim(); orderChanged(); return; }
-    if (e.target.classList.contains('psell')) { const sv = parseFloat(String(e.target.value).replace(',', '.')); setSell(pid, sv > 0 ? sv : ''); orderChanged(); return; }
+    if (e.target.classList.contains('psell')) { const sv = parseFloat(String(e.target.value).replace(',', '.')); setSell(sellKeyFor(pid, oi.unit), sv > 0 ? sv : ''); orderChanged(); return; }
     const v = parseFloat(String(e.target.value).replace(',', '.'));
     if (v > 0) oi.qty = v; else o.items.splice(o.items.indexOf(oi), 1);
     orderChanged(); updateCard(pid); updateListBar(); return;
@@ -2472,7 +2474,7 @@ function itemHint(o, it) {
   return { t: r + (h ? ' · ' + h.t : ''), warn: h ? h.warn : false };
 }
 function itemHint0(o, it) {
-  const sess = SESSION.items.find(x => x.pid === it.pid);
+  const sess = SESSION.items.find(x => x.pid === it.pid && toUnitKey(normUnit(x.unit)) === toUnitKey(normUnit(it.unit))) || SESSION.items.find(x => x.pid === it.pid);
   if (!sess || SESSION.phase === 'list') return null;
   const uk = toUnitKey(it.unit), mine = o.items.filter(x => x.pid === it.pid && toUnitKey(x.unit) === uk).reduce((s, x) => s + (Number(x.qty) || 0), 0);
   const used = allocated(it.pid, uk, o) + mine;
@@ -2663,23 +2665,35 @@ function afterOrderChange() {
   if (deliverOpen()) renderDelivery();
   if (document.body.dataset.screen === 'run') renderRun();
 }
+function sellKeyFor(pid, unit) {
+  const p = PROD_BY_ID[pid], uk = toUnitKey(normUnit(unit));
+  return (p && toUnitKey(normUnit(p.unit)) === uk) ? pid : pid + '|' + uk;
+}
+function skey(it) { return it.pid + '|' + toUnitKey(normUnit(it.unit)); }
+function lastUnit(pid, def) { try { const m = JSON.parse(localStorage.getItem('piaci_lastunit') || '{}'); return normUnit(m[pid] || def); } catch (e) { return normUnit(def); } }
+function setLastUnit(pid, u) { try { const m = JSON.parse(localStorage.getItem('piaci_lastunit') || '{}'); m[pid] = u; localStorage.setItem('piaci_lastunit', JSON.stringify(m)); } catch (e) { /* ignore */ } }
+function unitSelHtml(u) { return '<select class="punitsel" aria-label="egység">' + DEL_UNITS.map(x => '<option' + (x === normUnit(u) ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>'; }
 function syncSessionFromOrders() {
   if (SESSION.phase !== 'list') return;
-  const agg = {}, t = todayStr(), r2 = x => Math.round(x * 100) / 100;
+  const agg = {}, t = todayStr();
   DAY.orders.forEach(o => {
     if (o.status !== 'draft' || o.date !== t || o.transport) return;
     o.items.forEach(it => {
       const q = Number(it.qty) || 0; if (!(q > 0) || !PROD_BY_ID[it.pid]) return;
-      const a = agg[it.pid] = agg[it.pid] || { unit: normUnit(it.unit), qty: 0, name: it.name };
-      if (toUnitKey(normUnit(it.unit)) === toUnitKey(a.unit)) a.qty += q;
-      if (it.note) (a.notes = a.notes || []).push({ who: o.name || '?', note: it.note });
+      const a = agg[skey(it)] = agg[skey(it)] || { pid: it.pid, unit: normUnit(it.unit), qty: 0, notes: [] };
+      a.qty += q;
+      if (it.note) a.notes.push({ who: o.name || '?', note: it.note });
     });
   });
-  SESSION.items.forEach(it => { const a = agg[it.pid]; it.ord = a ? r2(a.qty) : 0; it.notes = a ? (a.notes || []) : []; if (a) it.unit = a.unit; if (SELL[it.pid] > 0) it.sell = Number(SELL[it.pid]); recalcItem(it); });
-  Object.keys(agg).forEach(pid => {
-    if (findItem(pid)) return;
-    const p = PROD_BY_ID[pid], a = agg[pid];
-    SESSION.items.push({ pid, name: p.name, cat: p.cat, unit: a.unit, qty: r2(a.qty), ord: r2(a.qty), extra: 0, notes: a.notes || [], sell: SELL[pid] > 0 ? Number(SELL[pid]) : '', done: false, buy: null, collected: false });
+  SESSION.items.forEach(it => {
+    const a = agg[skey(it)]; it.ord = a ? r2(a.qty) : 0; it.notes = a ? a.notes : [];
+    const sv = SELL[sellKeyFor(it.pid, it.unit)]; if (sv > 0) it.sell = Number(sv);
+    recalcItem(it);
+  });
+  Object.keys(agg).forEach(k => {
+    if (SESSION.items.some(it => skey(it) === k)) return;
+    const a = agg[k], p = PROD_BY_ID[a.pid], sv = SELL[sellKeyFor(a.pid, a.unit)];
+    SESSION.items.push({ pid: a.pid, name: p.name, cat: p.cat, unit: a.unit, qty: r2(a.qty), ord: r2(a.qty), extra: 0, notes: a.notes, sell: sv > 0 ? Number(sv) : '', done: false, buy: null, collected: false });
   });
   SESSION.items = SESSION.items.filter(it => it.ord > 0 || it.extra > 0);
 }

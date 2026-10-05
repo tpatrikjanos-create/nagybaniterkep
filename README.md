@@ -167,3 +167,7 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 ## v3.9 – Megjegyzések a rendeléseknél
 - Címenkénti rendelésfelvételnél tételenként megjegyzés (pl. „nagy fejű legyen”) és a teljes rendeléshez is megjegyzés rovat.
 - A megjegyzések látszanak a bevásárlás checklistjén (címmel), az összegyűjtésnél, a komissiózásnál (tétel és kártya), a szállításnál és a szállítólevélen.
+
+## v3.10 – Egység választása a rendelésnél (doboz, db, csomó…)
+- Címenkénti rendelésfelvételnél a terméken egység-választó (kg, doboz, db, csomó, köteg, vödör, csomag, rekesz, láda); a termék utoljára használt egysége megjegyződik.
+- A bevásárlás checklistje egység szerint külön sort ad (pl. Sárgarépa 5 kg + Sárgarépa 2 doboz); az eladási ár is egységenként tárolódik.
