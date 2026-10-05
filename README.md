@@ -149,3 +149,7 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - A kiválasztott terméknél látszik az összesen vásárlandó mennyiség, és megadható az eladási ár (Ft/egység); az ár megjegyződik a következő napra is.
 - Kipipáláskor élő árrés (Ft és %) a beszerzési ár alapján; a bevásárlás-listában és az összesítőben (várható árrés) is látszik.
 - A térképen a stand árlistájában a rögzített ár mellett az árrés is megjelenik, ahol az eladási ár ismert.
+
+## v3.6 – Szállítás: Címek és Új kiszállítás; Komissiózás: Új rendelés raktárkészletből
+- Szállítás képernyő: „📍 Címek” (mentett címek, edényzet-egyenleg címenként és összesen, szerkesztés/törlés, „+ Új cím”), „+ Új kiszállítás” (csak szállítás, komissiózás nélkül; mentett vagy új cím, tételek opcionálisak). A komissiózott, szállításra kész rendelések itt jelennek meg.
+- Komissiózás: „+ Új rendelés”; a tételválasztóban a Raktárkészlet külön szekció, a felvett mennyiség levonódik a raktárból (módosításkor/törléskor visszakerül).

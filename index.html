@@ -533,6 +533,8 @@
   .pctrl { flex-wrap: wrap; } .pctrl .prow { display: flex; gap: 3px; width: 100%; } .pctrl .plab { width: 100%; font-size: 12px; color: var(--muted); margin: 3px 0 2px; text-align: center; }
   .pctrl .psell { width: 100%; font-size: 13px; border-color: #e0a526; background: #fffaf0; }
   .mg { font-weight: 800; font-size: 12.5px; } .mg.pos { color: #1f7a1f; } .mg.neg { color: #c62828; }
+  #runScreen .ls-scroll { padding-bottom: 110px !important; }
+  .abrow .oa button { flex: 1; }
   .whc { background: #fff8e1; border: 1px solid #e8c766; border-radius: 6px; padding: 10px 12px; margin: 10px 0; }
   .whc h4 { margin: 0 0 6px; color: #6b4a00; } .whr { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 0; font-size: 14px; }
   .whr button { border: 1px solid #a8700a; border-radius: 4px; background: linear-gradient(180deg,#ffe9a0,#ffc84a); color: #3d2a00; font-weight: 700; padding: 6px 10px; cursor: pointer; }
@@ -623,6 +625,7 @@
     </div>
   </div>
   <div class="ls-scroll" id="rnScroll"></div>
+  <div class="ls-bar" id="rnBar"><div class="mrow" style="margin:0"><button class="go-btn ghost2" id="rnAddrs">📍 Címek</button><button class="go-btn" id="rnNew">+ Új kiszállítás</button></div></div>
 </div>
 
 <!-- ====== v2.3 RIPORTOK ====== -->
@@ -1948,7 +1951,7 @@ function sessionStats() {
   return { total, done, coll };
 }
 function sessionHandedOver() {   // a komissiózás kész: a címek szállításra készek / kiszállítva
-  try { const t = todayStr(), os = DAY.orders.filter(o => o.date === t); return os.some(o => o.status !== 'draft') && !os.some(o => o.status === 'draft' && o.items.length); } catch (e) { return false; }
+  try { const t = todayStr(), os = DAY.orders.filter(o => o.date === t && !o.transport); return os.some(o => o.status !== 'draft') && !os.some(o => o.status === 'draft' && o.items.length); } catch (e) { return false; }
 }
 function phaseLabel() {
   const st = sessionStats();
@@ -2361,8 +2364,9 @@ function pruneDay(d) {   // a szállításra kész / folyamatban lévő címek �
   return d;
 }
 function dateChip(o) {
-  if (!o.date || o.date === todayStr()) return '';
-  const p = o.date.split('-'); return '<span class="dchip">Komissiózva: ' + (+p[1]) + '. ' + (+p[2]) + '.</span>';
+  const tr = o.transport ? '<span class="dchip" style="background:#e3edff;color:#1a4fa3">Csak szállítás</span> ' : '';
+  if (!o.date || o.date === todayStr()) return tr;
+  const p = o.date.split('-'); return tr + '<span class="dchip">' + (o.transport ? 'Felvéve: ' : 'Komissiózva: ') + (+p[1]) + '. ' + (+p[2]) + '.</span>';
 }
 function loadDay() {
   try { const d = JSON.parse(localStorage.getItem('piaci_day') || 'null'); if (d) return pruneDay(normDay(d)); } catch (e) { /* hibás */ }
@@ -2477,7 +2481,7 @@ function renderDlBar() {
   const bar = $('dlBar'); if (!bar) return;
   const drafts = DAY.orders.filter(o => o.status === 'draft' && (o.name.trim() || o.items.length)).length;
   const ready = DAY.orders.filter(o => o.status === 'ready').length;
-  bar.innerHTML = '<div class="mrow" style="margin:0"><button class="go-btn ghost2" id="dlAdd">+ Új cím</button>' +
+  bar.innerHTML = '<div class="mrow" style="margin:0"><button class="go-btn ghost2" id="dlAdd">+ Új rendelés</button>' +
     (drafts ? '<button class="go-btn" id="dlAll">Szállításra kész ✓ (' + drafts + ')</button>'
             : '<button class="go-btn" id="dlNext"' + (ready ? '' : ' disabled') + '>Tovább a szállításra →</button>') + '</div>';
   $('dlAdd').onclick = () => { DAY.orders.push(normDay({ orders: [{ date: todayStr() }] }).orders[0]); saveDay(); renderDelivery(); openOrder(DAY.orders.length - 1); };
@@ -2541,9 +2545,25 @@ function purgeArchOrder(o) {
   try { localStorage.setItem('piaci_archive', JSON.stringify(ARCH)); } catch (x) { /* ignore */ }
   if (firebaseReady) db.ref('archive/' + o.date).set(e);
 }
+function r2(x) { return Math.round(x * 100) / 100; }
+function stockList() {
+  const m = {}; (DAY.warehouse || []).forEach(w => { const k = w.pid + '|' + toUnitKey(normUnit(w.unit)); (m[k] = m[k] || { pid: w.pid, name: w.name, unit: normUnit(w.unit), qty: 0 }).qty += Number(w.qty) || 0; });
+  return Object.keys(m).map(k => m[k]).map(x => { x.qty = r2(x.qty); return x; }).filter(x => x.qty > 0.001);
+}
+function stockAvail(pid, unit) { const x = stockList().find(y => y.pid === pid && toUnitKey(y.unit) === toUnitKey(normUnit(unit))); return x ? x.qty : 0; }
+function stockTake(pid, unit, qty) {
+  DAY.warehouse = DAY.warehouse || []; let need = qty; const uk = toUnitKey(normUnit(unit));
+  DAY.warehouse.forEach(w => { if (need > 0 && w.pid === pid && toUnitKey(normUnit(w.unit)) === uk) { const t = Math.min(Number(w.qty) || 0, need); w.qty = r2(w.qty - t); need = r2(need - t); } });
+  DAY.warehouse = DAY.warehouse.filter(w => w.qty > 0.001); return r2(qty - need);
+}
+function stockReturn(it, qty) {
+  const q = qty === undefined ? Number(it.fromStock) || 0 : qty; if (!(q > 0)) return;
+  DAY.warehouse = DAY.warehouse || []; DAY.warehouse.push({ id: rid(), date: todayStr(), pid: it.pid, name: it.name, unit: normUnit(it.unit), qty: q, by: who() });
+}
 function deleteOrder(o) {
   const dv = o.status === 'delivered';
   if (!confirm('Biztosan törlöd ezt a címet' + (o.name ? ' (' + o.name + ')' : '') + '?' + (dv ? '\nA kiszállítás a riportokból is törlődik, az edényzet-egyenleg nem változik.' : ''))) return false;
+  if (!dv) o.items.forEach(it => stockReturn(it));
   const k = DAY.orders.indexOf(o); if (k >= 0) DAY.orders.splice(k, 1);
   purgeArchOrder(o); logActivity('Cím törölve: ' + (o.name || '—')); saveDay(); return true;
 }
@@ -2587,6 +2607,7 @@ function listOpen() { return document.body.dataset.screen === 'list'; }
 function afterOrderChange() {
   if (listOpen() && listMode === 'addr') renderAddrStep();
   if (deliverOpen()) renderDelivery();
+  if (document.body.dataset.screen === 'run') renderRun();
 }
 function syncSessionFromOrders() {
   return;   // v3.4: a cím-lépésben nincs mennyiség, a bevásárlólista külön áll össze
@@ -2673,9 +2694,9 @@ function renderOrderItems(o) {
   if (!o.items.length) { el.innerHTML = '<p style="color:var(--muted);font-size:14px;margin:6px 0">Még nincs termék. Add hozzá lent.</p>'; return; }
   el.innerHTML = o.items.map((it, k) => {
     const h = itemHint(o, it);
-    return '<div class="irow" data-k="' + k + '"><div class="nm">' + escapeHtml(it.name) + '</div><button class="rm" data-act="rm" aria-label="törlés">✕</button>' +
+    return '<div class="irow" data-k="' + k + '"><div class="nm">' + escapeHtml(it.name) + (it.fromStock !== undefined ? ' <small style="color:#6b4a00">🏬 raktárból</small>' : '') + '</div><button class="rm" data-act="rm" aria-label="törlés">✕</button>' +
       '<div class="f"><div><label>Mennyiség (élesben)</label><input type="number" inputmode="decimal" step="any" min="0" data-f="qty" value="' + (it.qty === '' ? '' : it.qty) + '"></div>' +
-      '<div><label>Egység</label><select data-f="unit">' + DEL_UNITS.map(u => '<option' + (u === normUnit(it.unit) ? ' selected' : '') + '>' + u + '</option>').join('') + '</select></div>' +
+      '<div><label>Egység</label><select data-f="unit"' + (it.fromStock !== undefined ? ' disabled' : '') + '>' + DEL_UNITS.map(u => '<option' + (u === normUnit(it.unit) ? ' selected' : '') + '>' + u + '</option>').join('') + '</select></div>' +
       '</div><div class="hint' + (h && h.warn ? ' warn' : '') + '" data-h>' + (h ? escapeHtml(h.t) : '') + '</div></div>';
   }).join('');
   const refresh = (row, k) => {
@@ -2689,11 +2710,17 @@ function renderOrderItems(o) {
       const ev = inp.tagName === 'SELECT' ? 'change' : 'input';
       inp.addEventListener(ev, () => {
         const f = inp.dataset.f, it = o.items[k];
+        if (f === 'qty' && it.fromStock !== undefined) {
+          const cur = Number(it.fromStock) || 0; let nq = parseFloat(String(inp.value).replace(',', '.')) || 0;
+          const max = r2(cur + stockAvail(it.pid, it.unit)); if (nq > max) { nq = max; inp.value = nq; showStatus('Ennyi van raktáron: ' + fmtQty(max), 2500); }
+          if (nq > cur) stockTake(it.pid, it.unit, r2(nq - cur)); else if (nq < cur) stockReturn(it, r2(cur - nq));
+          it.fromStock = nq; it.qty = nq; saveDay(); refresh(row, k); return;
+        }
         it[f] = f === 'unit' ? inp.value : (inp.value === '' ? '' : parseFloat(String(inp.value).replace(',', '.')));
         saveDay(); refresh(row, k);
       });
     });
-    row.querySelector('[data-act=rm]').onclick = () => { o.items.splice(k, 1); saveDay(); renderOrderItems(o); updateOrderTotal(o); };
+    row.querySelector('[data-act=rm]').onclick = () => { stockReturn(o.items[k]); o.items.splice(k, 1); saveDay(); renderOrderItems(o); updateOrderTotal(o); };
   });
 }
 function renderCrates(o) {
@@ -2717,9 +2744,18 @@ function openPicker(i) {
     let ps = CATALOG.filter(p => !q || p.n.includes(q) || p.s.some(x => x.includes(q)));
     ps.sort((a, b) => (inSess.has(b.id) ? 1 : 0) - (inSess.has(a.id) ? 1 : 0));
     ps = ps.slice(0, 80);
-    $('pkRes').innerHTML = ps.map(p => '<div class="pr" data-pid="' + p.id + '"><span style="font-size:22px">' + prodEmoji(p) + '</span><b>' + escapeHtml(p.name) + '</b>' +
+    const st = stockList().filter(x => !q || normText(x.name).includes(q));
+    const stHtml = st.length ? '<div class="rsec">🏬 Raktárkészlet</div>' + st.map(x => '<div class="pr st" data-pid="' + x.pid + '" data-unit="' + escapeHtml(x.unit) + '"><span style="font-size:22px">' + prodEmoji(PROD_BY_ID[x.pid] || { id: x.pid, cat: '' }) + '</span><b>' + escapeHtml(x.name) + '</b><span class="tag">' + fmtQty(x.qty) + ' ' + escapeHtml(x.unit) + '</span></div>').join('') + '<div class="rsec">Összes termék</div>' : '';
+    $('pkRes').innerHTML = stHtml + ps.map(p => '<div class="pr" data-pid="' + p.id + '"><span style="font-size:22px">' + prodEmoji(p) + '</span><b>' + escapeHtml(p.name) + '</b>' +
       (inSess.has(p.id) ? '<span class="tag">ma a listán</span>' : '<small>' + escapeHtml(p.unit) + '</small>') + '</div>').join('') || '<p style="color:var(--muted)">Nincs találat.</p>';
-    $('pkRes').querySelectorAll('.pr').forEach(r => r.onclick = () => {
+    $('pkRes').querySelectorAll('.pr.st').forEach(r => r.onclick = () => {
+      const pid = r.dataset.pid, unit = r.dataset.unit;
+      if (o.items.some(x => x.pid === pid)) { showStatus('Már szerepel — a mennyiséget írd át.'); openOrder(i); return; }
+      const take = stockTake(pid, unit, stockAvail(pid, unit)), pr = PROD_BY_ID[pid] || {};
+      o.items.push({ pid, name: pr.name || r.querySelector('b').textContent, unit, qty: take, fromStock: take, price: SELL[pid] > 0 ? Number(SELL[pid]) : (pr.price || 0) });
+      saveDay(); const h = modalHook; openOrder(i); modalHook = h || modalHook;
+    });
+    $('pkRes').querySelectorAll('.pr:not(.st)').forEach(r => r.onclick = () => {
       const p = PROD_BY_ID[r.dataset.pid];
       if (o.items.some(x => x.pid === p.id)) { showStatus('Már szerepel — a mennyiséget írd át.'); openOrder(i); return; }
       const sess = SESSION.phase === 'list' ? null : SESSION.items.find(x => x.pid === p.id);
@@ -2803,7 +2839,7 @@ function renderRun() {
 }
 function openRun(i) {
   const o = DAY.orders[i], dl = o.status === 'delivered', d = debtOf(o);
-  const items = o.items.filter(it => Number(it.qty) > 0).map(it => '<tr><td>' + escapeHtml(it.name) + '</td><td class="r">' + fmtQty(it.qty) + ' ' + escapeHtml(normUnit(it.unit)) + '</td></tr>').join('');
+  const items = o.items.filter(it => Number(it.qty) > 0).map(it => '<tr><td>' + escapeHtml(it.name) + '</td><td class="r">' + fmtQty(it.qty) + ' ' + escapeHtml(normUnit(it.unit)) + '</td></tr>').join('') || '<tr><td style="color:var(--muted)">Csak szállítás — nincs áru</td></tr>';
   const nav = o.address ? '<a class="navlink" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(o.address) + '">🧭 Navigáció</a>' : '';
   openModal('<div class="oedit"><h3>🚚 ' + escapeHtml(o.name) + '</h3><div style="color:var(--muted);font-size:14px">' + escapeHtml(o.address || '') + (o.note ? '<br><i>' + escapeHtml(o.note) + '</i>' : '') + '</div>' + nav +
     '<div class="rsec">Átadandó</div><table class="rtab">' + items + '</table>' +
@@ -2859,6 +2895,62 @@ function renderDebtEditor(o) {
 }
 
 $('rnBack').addEventListener('click', () => showScreen('home'));
+function savedAddrs() { return Object.keys(ADDRS).map(k => [k, ADDRS[k]]).filter(x => x[1] && x[1].name); }
+function openAddrBook() {
+  const list = savedAddrs().sort((a, b) => String(a[1].name).localeCompare(String(b[1].name), 'hu')), tot = {};
+  list.forEach(x => CRATE_KEYS.forEach(c => { tot[c[0]] = (tot[c[0]] || 0) + (Number((x[1].debt || {})[c[0]]) || 0); }));
+  openModal('<div class="oedit"><h3>📍 Címek</h3><p class="sub">Kint lévő edényzet összesen: <b>' + escapeHtml(balText(tot) || 'nincs') + '</b></p>' +
+    (list.length ? list.map((x, i) => '<div class="ocard abrow" data-i="' + i + '" style="animation:none"><div class="oh"><div class="on"><b>' + escapeHtml(x[1].name) + '</b><small>' + escapeHtml(x[1].address || 'cím nélkül') + '</small>' + (x[1].note ? '<small><i>' + escapeHtml(x[1].note) + '</i></small>' : '') + '</div></div>' +
+      '<div style="margin:2px 0 8px">' + (balTag(x[1].debt || {}) || '<span class="debt-tag neg">edényzet rendezve</span>') + '</div>' +
+      '<div class="oa"><button data-act="edit">✏️ Szerkeszt</button><button class="ok" data-act="ship">🚚 Kiszállítás</button></div></div>').join('') : '<p style="color:var(--muted)">Még nincs mentett cím.</p>') +
+    '<button class="go-btn" id="abNew" style="width:100%;margin-top:10px">+ Új cím</button><button class="go-btn ghost2" id="abClose" style="width:100%;margin-top:8px">Bezár</button></div>');
+  $('abClose').onclick = closeModal; $('abNew').onclick = () => openAddrEdit(null);
+  $('modalCard').querySelectorAll('.abrow').forEach(el => el.addEventListener('click', (e) => {
+    const x = list[+el.dataset.i], b = e.target.closest('button');
+    if (b && b.dataset.act === 'ship') openNewDelivery(x[0]); else openAddrEdit(x[0]);
+  }));
+}
+function openAddrEdit(k) {
+  const a = k ? ADDRS[k] : null, d = (a && a.debt) || {};
+  openModal('<div class="oedit"><h3>' + (k ? '✏️ Cím szerkesztése' : '➕ Új cím') + '</h3>' +
+    '<span class="flabel" style="margin-top:0">Név (étterem / szálloda)</span><input type="text" id="aeName" autocomplete="off">' +
+    '<span class="flabel">Cím</span><input type="text" id="aeAddr" autocomplete="off"><span class="flabel">Megjegyzés</span><input type="text" id="aeNote" autocomplete="off">' +
+    '<span class="flabel">Edényzet-egyenleg (pozitív: nálunk nem lévő, náluk levő)</span><div class="crate-grid">' + CRATE_KEYS.map(c => '<div class="cstep"><small>' + c[1] + '</small><div class="cc"><input type="number" inputmode="numeric" step="1" id="ae_' + c[0] + '" value="' + (Number(d[c[0]]) || 0) + '" style="width:64px"></div></div>').join('') + '</div>' +
+    '<div class="mrow"><button class="go-btn ghost2" id="aeBack">← Vissza</button><button class="go-btn" id="aeSave">Mentés</button></div>' +
+    (k ? '<button class="go-btn ghost2" id="aeDel" style="width:100%;margin-top:8px;color:#b3261e">🗑 Cím törlése a mentettek közül</button>' : '') + '</div>');
+  $('aeName').value = a ? a.name : ''; $('aeAddr').value = a ? (a.address || '') : ''; $('aeNote').value = a ? (a.note || '') : '';
+  $('aeBack').onclick = openAddrBook;
+  $('aeSave').onclick = () => {
+    const name = $('aeName').value.trim(); if (!name) { showStatus('⚠️ Add meg a cím nevét!'); return; }
+    const id = addrIdFor(name), debt = {}; CRATE_KEYS.forEach(c => { debt[c[0]] = parseInt($('ae_' + c[0]).value, 10) || 0; });
+    const prev = a || ADDRS[id] || {};
+    if (!k && ADDRS[id] && !confirm('Már van ilyen nevű mentett cím. Felülírod?')) return;
+    if (k && k !== id) { delete ADDRS[k]; if (firebaseReady) db.ref('addressBook/' + k).remove(); DAY.orders.forEach(o => { if (o.addrId === k) o.addrId = id; }); }
+    ADDRS[id] = Object.assign({}, prev, { name, address: $('aeAddr').value.trim(), note: $('aeNote').value.trim(), lastUsed: prev.lastUsed || Date.now(), debt });
+    saveAddrs(); if (firebaseReady) db.ref('addressBook/' + id).set(ADDRS[id]);
+    logActivity('Cím mentve: ' + name); showStatus('✓ Cím mentve', 2000); openAddrBook();
+  };
+  if (k) $('aeDel').onclick = () => { if (!confirm('Törlöd a mentett címet (' + a.name + ')? A tartozás-egyenleg is elvész.')) return; delete ADDRS[k]; saveAddrs(); if (firebaseReady) db.ref('addressBook/' + k).remove(); openAddrBook(); };
+}
+function openNewDelivery(prefKey) {
+  const saved = savedAddrs().sort((a, b) => (b[1].lastUsed || 0) - (a[1].lastUsed || 0)).slice(0, 30);
+  openModal('<div class="oedit"><h3>🚚 Új kiszállítás</h3><p class="sub">Csak szállítás, komissiózás nélkül. Válassz mentett címet, vagy adj meg újat — a tételek nem kötelezők.</p>' +
+    '<div class="addr-chips" id="ndChips">' + saved.map((x, i) => '<button type="button" data-i="' + i + '">📍 ' + escapeHtml(x[1].name) + '</button>').join('') + '</div>' +
+    '<span class="flabel">Név</span><input type="text" id="ndName" autocomplete="off"><span class="flabel">Cím</span><input type="text" id="ndAddr" autocomplete="off"><span class="flabel">Megjegyzés</span><input type="text" id="ndNote" autocomplete="off">' +
+    '<div class="mrow"><button class="go-btn ghost2" id="ndCancel">Mégse</button><button class="go-btn" id="ndOk">Tovább →</button></div></div>');
+  const fill = (a) => { $('ndName').value = a.name; $('ndAddr').value = a.address || ''; $('ndNote').value = a.note || ''; };
+  if (prefKey && ADDRS[prefKey]) fill(ADDRS[prefKey]);
+  $('ndChips').querySelectorAll('button').forEach(b => b.onclick = () => fill(saved[+b.dataset.i][1]));
+  $('ndCancel').onclick = closeModal;
+  $('ndOk').onclick = () => {
+    const name = $('ndName').value.trim(); if (!name) { showStatus('⚠️ Add meg a cím nevét!'); return; }
+    const o = newOrder(); o.name = name; o.address = $('ndAddr').value.trim(); o.note = $('ndNote').value.trim();
+    o.status = 'ready'; o.transport = true; o.readyBy = who(); syncOrderAddress(o); DAY.orders.push(o);
+    logActivity('Új kiszállítás: ' + name); saveDay(); openOrder(DAY.orders.length - 1);
+  };
+}
+$('rnAddrs').addEventListener('click', openAddrBook);
+$('rnNew').addEventListener('click', () => openNewDelivery());
 $('goRun').addEventListener('click', () => showScreen('run'));
 
 /* ================= v2.3 NAPI ARCHÍVUM + RIPORTOK ================= */
