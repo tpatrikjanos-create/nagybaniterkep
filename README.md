@@ -215,3 +215,6 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 ## v3.18 – Email lista: telefonszám nem tárcsáz, email másolása
 - A listában a telefonszámra koppintva nem nyílik meg a telefon alkalmazás (sima szöveg; a sorra koppintás a címet nyitja meg). Tárcsázni csak a „📞 Hívás” gombbal lehet.
 - A megnyitott címnél az email cím mellett „📋 Másolás” gomb (és a telefonszám mellett is egy), amely a vágólapra másol.
+
+## v3.19 – Email lista: válaszoló és partner nem kap emailt
+- Aki válaszolt, partner lett, vagy nem érdekli, az mindig kikerül az esedékes emailek (és a „Címek másolása” / „Kiküldtem”) köréből; a korábbi kapcsoló megszűnt, ez mindig így működik. Ha visszavonod a jelölést, újra esedékes lehet.

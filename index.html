@@ -755,7 +755,8 @@
     </div>
     <div class="em-card">
       <h4>Beállítások és mentés</h4>
-      <label class="em-chk"><input type="checkbox" id="emSkip"> Akik már válaszoltak, nekik nem küldök (ne legyenek esedékesek)</label>
+      <input type="checkbox" id="emSkip" style="display:none">
+      <div class="em-note" style="margin-top:0">Akik válaszoltak vagy partnerek lettek, vagy nem érdekli őket, azok nem kerülnek az esedékes emailek közé.</div>
       <div class="em-row"><button class="em-btn ghost" id="emCsv">⬇ Mentés CSV-be</button></div>
       <div class="em-note">A lista a felhőben van, minden bejelentkezett eszközön ugyanaz látszik.</div>
     </div>
@@ -3510,7 +3511,7 @@ loadWal(); updateWalSub();
   const firstOn = () => !!E('emFirst').checked;
   const needsEnrich = i => { if (i.status !== 'dup') return false; const cc = DBM.contacts[i.email]; return !!((i.phone && !cc.phone) || (i.name && !cc.name) || (firstOn() && !cc.lastSent)); };
   const CALL = { nincs: 'Nem vette fel', vissza: 'Visszahívást kért', erdekli: 'Érdekli', partner: 'Partner lett', nem: 'Nem érdekli' };
-  const isDue = c => c.stop ? false : ((DBM.skip && c.replied) ? false : (!c.lastSent || daysSince(c.lastSent) >= EVERY));
+  const isDue = c => (c.stop || c.replied || c.partner) ? false : (!c.lastSent || daysSince(c.lastSent) >= EVERY);
   const needsCall = c => !!c.phone && !c.replied && !c.partner && !c.stop && (c.sent || 0) >= 1 && (!c.callAt || ((c.callRes === 'nincs' || c.callRes === 'vissza') && daysSince(c.callAt) >= 2));
   function callPills(c) {
     let h = '';
