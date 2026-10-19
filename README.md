@@ -201,3 +201,8 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Beillesztéskor soronként „Étterem neve email +36… ” formátum is jó: a név, az email és a telefonszám automatikusan szétválik (nem összetévesztve az email címben lévő számokkal).
 - Telefonszám a soron (koppintásra hívható), szerkeszthető, kereshető, CSV-ben külön oszlop.
 - Ha egy már meglévő cím újra bekerül névvel/telefonszámmal, a hiányzó adatot pótolja (ismétlésként nem ment új sort).
+
+## v3.16 – Email lista: hívási lista, első levél kiküldve
+- „Hívandó” nézet: akinek van telefonszáma, már kapott levelet, de nem válaszolt – a következő lépés a telefonálás. A soron „📞 Hívás” (tárcsáz) és „Felhívtam” gomb.
+- Hívás eredménye: nem vette fel / visszahívást kért (2 nap múlva újra hívandó), érdekli (válaszoltnak számít), partner lett, nem érdekli (nem kap több emailt, nincs a hívandók közt); megjegyzéssel és dátummal, a naplóba is kerül; CSV-ben külön oszlopok.
+- Beillesztéskor „✉️ Az első levél már ki van küldve nekik” (dátummal): az új (és a még nem kiküldött meglévő) címek kiküldöttként kerülnek fel, így a heti esedékesség és a hívandó lista rögtön jó.

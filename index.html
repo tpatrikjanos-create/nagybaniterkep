@@ -300,7 +300,7 @@
   /* ===== v3.13 EMAIL LISTA ===== */
   body[data-screen=mail] #mailScreen { opacity: 1; pointer-events: auto; transform: none; }
   #mailScreen .ls-scroll { padding-bottom: 40px; }
-  .em-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 10px; }
+  .em-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
   .em-stat { background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 8px 2px; text-align: center; cursor: pointer; font: inherit; }
   .em-stat b { display: block; font-size: 20px; color: var(--g800); } .em-stat small { color: var(--muted); font-size: 10.5px; font-weight: 700; }
   .em-stat.on { border-color: var(--g700); background: var(--g50); } .em-stat.due b { color: #8a5a00; }
@@ -324,6 +324,8 @@
   .em-ct { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--line); } .em-ct:last-child { border: none; } .em-ct .tick { width: 22px; height: 22px; accent-color: var(--g700); flex: none; }
   .em-ct .mid { flex: 1; min-width: 0; cursor: pointer; } .em-ct .mid b { display: block; overflow-wrap: anywhere; font-size: 15px; } .em-ct .mid small { color: var(--muted); font-size: 12.5px; display: block; }
   .em-pill { display: inline-block; border-radius: 99px; padding: 1px 8px; font-size: 11.5px; font-weight: 800; margin-right: 4px; background: #fde7e7; color: #c62828; } .em-pill.ok { background: #e3f6e8; color: var(--g700); } .em-pill.due { background: #fff3d6; color: #8a5a00; }
+  a.em-rbtn { display: block; text-align: center; text-decoration: none; }
+  .em-callres { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .em-callres button { border: 2px solid var(--line); background: #fff; border-radius: 12px; padding: 10px 6px; font: inherit; font-weight: 700; cursor: pointer; } .em-callres button.on { background: var(--g50); border-color: var(--g700); color: var(--g800); }
   .em-acts { display: flex; flex-direction: column; gap: 6px; flex: none; } .em-pill.cat { background: #e3edff; color: #1a4fa3; }
   .em-rbtn { flex: none; border: 1.5px solid var(--line); background: #fff; border-radius: 12px; padding: 8px 10px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; color: var(--g800); } .em-rbtn.on { background: #e3f6e8; border-color: var(--g700); }
   .em-empty { text-align: center; color: var(--muted); padding: 18px 8px; } .em-note { color: var(--muted); font-size: 12.5px; margin: 12px 2px 0; }
@@ -734,7 +736,11 @@
     <div class="em-card">
       <h4>Címek beillesztése</h4>
       <div class="em-seg"><button data-m="add" class="on">➕ Új címek</button><button data-m="reply">✅ Válaszoltak</button></div>
-      <input class="em-f" id="emPCat" list="emCats" maxlength="40" placeholder="Kategória az új címekhez (pl. gyros, magyaros) – nem kötelező" style="margin-bottom:8px"><datalist id="emCats"></datalist>
+      <div id="emAddOpts" style="margin-bottom:8px">
+        <input class="em-f" id="emPCat" list="emCats" maxlength="40" placeholder="Kategória az új címekhez (pl. gyros, magyaros) – nem kötelező"><datalist id="emCats"></datalist>
+        <label class="em-chk"><input type="checkbox" id="emFirst"> ✉️ Az első levél már ki van küldve nekik</label>
+        <input type="date" class="em-f" id="emFirstD" style="display:none;margin-top:6px">
+      </div>
       <textarea class="em-f" id="emPaste" placeholder="Illessz be egy vagy több email címet (vesszővel, pontosvesszővel, szóközzel vagy sorokra tagolva; „Étterem neve cim@pelda.hu +36701234567” vagy „Étterem neve &lt;cim@pelda.hu&gt;” is jó)"></textarea>
       <div class="em-sum" id="emSum"></div>
       <div class="em-pv" id="emPv" style="display:none"></div>
@@ -3464,7 +3470,7 @@ loadWal(); updateWalSub();
     const c = { new: 0, dup: 0, dupPaste: 0, bad: 0 }; items.forEach(i => c[i.status]++);
     let sum, nAct;
     if (mode === 'add') {
-      const enrN = items.filter(i => i.status === 'dup' && ((i.phone && !DBM.contacts[i.email].phone) || (i.name && !DBM.contacts[i.email].name))).length;
+      const enrN = items.filter(needsEnrich).length;
       nAct = c.new + enrN;
       sum = '<span class="n">' + c.new + ' új</span>' + (enrN ? ' · <span class="n">' + enrN + ' meglévő kiegészül</span>' : '') + (c.dup + c.dupPaste ? ' · <span class="d">' + (c.dup + c.dupPaste) + ' ismétlés (nem mentem el)</span>' : '') + (c.bad ? ' · <span class="x">' + c.bad + ' hibás</span>' : '');
     } else {
@@ -3477,7 +3483,7 @@ loadWal(); updateWalSub();
       const cc = DBM.contacts[i.email];
       if (mode === 'add') {
         if (i.status === 'new') return '<div><span>' + esc(i.email) + (i.name || i.phone ? ' <small>(' + esc([i.name, i.phone].filter(Boolean).join(' · ')) + ')</small>' : '') + '</span><span class="t new">új</span></div>';
-        const enr = i.status === 'dup' && ((i.phone && !cc.phone) || (i.name && !cc.name));
+        const enr = needsEnrich(i);
         return '<div class="dupr"><span>' + esc(i.email) + '</span><span class="t dup">ISMÉTLÉS' + (i.status === 'dup' ? (enr ? ' · hiányzó adat pótlódik' : ' · ' + fmtD(cc.added) + ' óta megvan') : '') + '</span></div>';
       }
       if (i.status === 'new') return '<div class="dupr"><span>' + esc(i.email) + '</span><span class="t dup">nincs a listában</span></div>';
@@ -3490,16 +3496,32 @@ loadWal(); updateWalSub();
     const items = parse(E('emPaste').value), ch = [];
     if (mode === 'add') {
       let d = 0, en = 0;
-      items.forEach(i => { if (i.status === 'dup') { const c0 = DBM.contacts[i.email]; let f = false; if (i.phone && !c0.phone) { c0.phone = i.phone; f = true; } if (i.name && !c0.name) { c0.name = i.name; f = true; } if (f) { ch.push(c0); en++; } } });
-      items.forEach(i => { if (i.status === 'new') { const c = { email: i.email, name: i.name || '', phone: i.phone || '', cat: E('emPCat').value.trim(), partner: false, partnerAt: null, added: today(), replied: false, repliedAt: null, lastSent: null, sent: 0, by: who() }; DBM.contacts[i.email] = c; ch.push(c); } else if (i.status !== 'bad') d++; });
+      const fd = E('emFirstD').value || today();
+      items.forEach(i => { if (i.status === 'dup') { const c0 = DBM.contacts[i.email]; let f = false; if (i.phone && !c0.phone) { c0.phone = i.phone; f = true; } if (i.name && !c0.name) { c0.name = i.name; f = true; } if (firstOn() && !c0.lastSent) { c0.lastSent = fd; c0.sent = Math.max(1, c0.sent || 0); f = true; } if (f) { ch.push(c0); en++; } } });
+      items.forEach(i => { if (i.status === 'new') { const c = { email: i.email, name: i.name || '', phone: i.phone || '', cat: E('emPCat').value.trim(), partner: false, partnerAt: null, added: today(), replied: false, repliedAt: null, lastSent: firstOn() ? fd : null, sent: firstOn() ? 1 : 0, by: who() }; DBM.contacts[i.email] = c; ch.push(c); } else if (i.status !== 'bad') d++; });
       const nn = ch.length - en; pushMany(ch); toast(nn + ' új cím mentve' + (d ? ', ' + d + ' ismétlést kihagytam' : '') + (en ? ' (' + en + ' meglévő címnél pótoltam a hiányzó adatot)' : '') + '.'); if (nn) flt = 'due';
     } else {
       items.forEach(i => { const c = i.status === 'dup' && DBM.contacts[i.email]; if (c && !c.replied) { c.replied = true; c.repliedAt = today(); ch.push(c); } });
       pushMany(ch); toast(ch.length + ' cím megjelölve válaszoltként.');
     }
-    E('emPaste').value = ''; renderAll();
+    E('emPaste').value = ''; E('emFirst').checked = false; E('emFirstD').style.display = 'none'; renderAll();
   }
-  const isDue = c => (DBM.skip && c.replied) ? false : (!c.lastSent || daysSince(c.lastSent) >= EVERY);
+  const firstOn = () => !!E('emFirst').checked;
+  const needsEnrich = i => { if (i.status !== 'dup') return false; const cc = DBM.contacts[i.email]; return !!((i.phone && !cc.phone) || (i.name && !cc.name) || (firstOn() && !cc.lastSent)); };
+  const CALL = { nincs: 'Nem vette fel', vissza: 'Visszahívást kért', erdekli: 'Érdekli', partner: 'Partner lett', nem: 'Nem érdekli' };
+  const isDue = c => c.stop ? false : ((DBM.skip && c.replied) ? false : (!c.lastSent || daysSince(c.lastSent) >= EVERY));
+  const needsCall = c => !!c.phone && !c.replied && !c.partner && !c.stop && (c.sent || 0) >= 1 && (!c.callAt || ((c.callRes === 'nincs' || c.callRes === 'vissza') && daysSince(c.callAt) >= 2));
+  function callPills(c) {
+    let h = '';
+    if (c.stop) h += '<span class="em-pill">⛔ nem érdekli</span>';
+    else if (needsCall(c)) h += '<span class="em-pill due">📞 hívandó</span>';
+    if (c.callAt) h += '<span class="em-pill cat">📞 ' + fmtD(c.callAt) + ' · ' + esc(CALL[c.callRes] || '') + (c.callNote ? ' – ' + esc(c.callNote) : '') + '</span>';
+    return h;
+  }
+  function acts(c) {
+    if (flt === 'call') return '<div class="em-acts"><a class="em-rbtn on" href="tel:' + esc((c.phone || '').replace(/[^\d+]/g, '')) + '">📞 Hívás</a><button class="em-rbtn em-cbtn">Felhívtam</button></div>';
+    return '<div class="em-acts"><button class="em-rbtn ' + (c.replied ? 'on' : '') + '">' + (c.replied ? '✓ Válaszolt' : 'Válaszolt?') + '</button><button class="em-rbtn em-pbtn ' + (c.partner ? 'on' : '') + '">' + (c.partner ? '🤝 Partner' : 'Partner?') + '</button></div>';
+  }
   const allC = () => Object.keys(DBM.contacts).map(k => DBM.contacts[k]);
   const dueList = () => allC().filter(isDue).sort((a, b) => (a.lastSent || '').localeCompare(b.lastSent || '') || a.email.localeCompare(b.email));
   function sendInfo(c) {
@@ -3511,11 +3533,11 @@ loadWal(); updateWalSub();
   window.updateMailSub = function () {
     const el = document.querySelector('#goMail small'); if (!el) return;
     const n = allC().length, d = dueList().length;
-    el.textContent = n ? n + ' cím · ' + (d ? d + ' esedékes' : 'ma nincs kinek küldeni') : 'Árlista-címek, válaszok, heti kiküldés';
+    el.textContent = n ? n + ' cím · ' + (d ? d + ' esedékes' : 'ma nincs kinek küldeni') + (allC().filter(needsCall).length ? ' · ' + allC().filter(needsCall).length + ' hívandó' : '') : 'Árlista-címek, válaszok, heti kiküldés';
   };
   function renderStats() {
     const a = allC(), due = dueList().length, rep = a.filter(c => c.replied).length, par = a.filter(c => c.partner).length;
-    const defs = [['due', 'Esedékes', due], ['wait', 'Nem válaszolt', a.length - rep], ['replied', 'Válaszolt', rep], ['partner', 'Partner lett', par], ['all', 'Mind', a.length]];
+    const defs = [['due', 'Esedékes', due], ['call', 'Hívandó', a.filter(needsCall).length], ['wait', 'Nem válaszolt', a.length - rep], ['replied', 'Válaszolt', rep], ['partner', 'Partner lett', par], ['all', 'Mind', a.length]];
     E('emStats').innerHTML = defs.map(d => '<button class="em-stat ' + (d[0] === 'due' ? 'due ' : '') + (flt === d[0] ? 'on' : '') + '" data-f="' + d[0] + '"><b>' + d[2] + '</b><small>' + d[1] + '</small></button>').join('');
   }
   function renderSend() {
@@ -3532,16 +3554,16 @@ loadWal(); updateWalSub();
   function renderList() {
     const q = E('emQ').value.trim().toLowerCase();
     let l = allC();
-    if (flt === 'due') l = dueList(); else if (flt === 'wait') l = l.filter(c => !c.replied); else if (flt === 'replied') l = l.filter(c => c.replied); else if (flt === 'partner') l = l.filter(c => c.partner);
+    if (flt === 'due') l = dueList(); else if (flt === 'wait') l = l.filter(c => !c.replied); else if (flt === 'replied') l = l.filter(c => c.replied); else if (flt === 'partner') l = l.filter(c => c.partner); else if (flt === 'call') l = l.filter(needsCall);
     if (catFlt) l = l.filter(c => (c.cat || '').toLowerCase() === catFlt.toLowerCase());
     if (q) l = l.filter(c => c.email.includes(q) || (c.name || '').toLowerCase().includes(q) || (c.cat || '').toLowerCase().includes(q) || (c.phone || '').replace(/\s/g, '').includes(q.replace(/\s/g, '')));
     if (flt !== 'due') l.sort((a, b) => (b.added || '').localeCompare(a.added || '') || a.email.localeCompare(b.email));
-    E('emLstT').textContent = { due: 'Esedékes címek', wait: 'Még nem válaszoltak', replied: 'Válaszoltak', partner: 'Partnerek', all: 'Minden cím' }[flt] + ' (' + l.length + ')';
+    E('emLstT').textContent = { due: 'Esedékes címek', wait: 'Még nem válaszoltak', replied: 'Válaszoltak', partner: 'Partnerek', call: 'Hívandó címek (nem válaszoltak, telefonálás a következő lépés)', all: 'Minden cím' }[flt] + ' (' + l.length + ')';
     E('emList').innerHTML = l.length ? l.map(c =>
       '<div class="em-ct" data-e="' + esc(c.email) + '">' + (flt === 'due' ? '<input type="checkbox" class="tick" ' + (excluded.has(c.email) ? '' : 'checked') + '>' : '') +
       '<div class="mid"><b>' + esc(c.name || c.email) + '</b>' + '<small>' + (c.name ? esc(c.email) : '') + (c.phone ? (c.name ? ' · ' : '') + '<a href="tel:' + esc(c.phone.replace(/[^\d+]/g, '')) + '" style="color:var(--blue,#1a4fa3);font-weight:700;text-decoration:none">📞 ' + esc(c.phone) + '</a>' : '') + '</small>' +
-      '<small>' + (c.cat ? '<span class="em-pill cat">' + esc(c.cat) + '</span>' : '') + (c.partner ? '<span class="em-pill ok">🤝 partner' + (c.partnerAt ? ' ' + fmtD(c.partnerAt) : '') + '</span>' : '') + (c.replied ? '<span class="em-pill ok">válaszolt ' + fmtD(c.repliedAt) + '</span>' : '<span class="em-pill">nem válaszolt</span>') + '</small><small>' + sendInfo(c) + '</small></div>' +
-      '<div class="em-acts"><button class="em-rbtn ' + (c.replied ? 'on' : '') + '">' + (c.replied ? '✓ Válaszolt' : 'Válaszolt?') + '</button><button class="em-rbtn em-pbtn ' + (c.partner ? 'on' : '') + '">' + (c.partner ? '🤝 Partner' : 'Partner?') + '</button></div></div>').join('')
+      '<small>' + (c.cat ? '<span class="em-pill cat">' + esc(c.cat) + '</span>' : '') + (c.partner ? '<span class="em-pill ok">🤝 partner' + (c.partnerAt ? ' ' + fmtD(c.partnerAt) : '') + '</span>' : '') + (c.replied ? '<span class="em-pill ok">válaszolt ' + fmtD(c.repliedAt) + '</span>' : '<span class="em-pill">nem válaszolt</span>') + '</small><small>' + callPills(c) + sendInfo(c) + '</small></div>' +
+      acts(c) + '</div>').join('')
       : '<div class="em-empty">' + (allC().length ? 'Nincs találat ebben a nézetben.' : 'Még nincs egyetlen cím sem. Illessz be párat fent!') + '</div>';
   }
   function cats() { const m = {}; allC().forEach(c => { if (c.cat) m[c.cat.toLowerCase()] = m[c.cat.toLowerCase()] || c.cat; }); return Object.keys(m).sort().map(k => m[k]); }
@@ -3561,19 +3583,42 @@ loadWal(); updateWalSub();
       '<label class="em-lab">Utolsó kiküldés dátuma</label><input type="date" class="em-f" id="emEL" value="' + esc(c.lastSent || '') + '">' +
       '<label class="em-chk"><input type="checkbox" id="emER"' + (c.replied ? ' checked' : '') + '> Válaszolt</label>' +
       '<label class="em-chk"><input type="checkbox" id="emEP"' + (c.partner ? ' checked' : '') + '> 🤝 Partner lett</label>' +
+      '<label class="em-chk"><input type="checkbox" id="emEX"' + (c.stop ? ' checked' : '') + '> ⛔ Nem érdekli – ne kapjon több emailt, ne legyen hívandó</label>' +
       '<div class="em-row"><button class="em-btn warn" id="emED">Törlés</button><button class="em-btn ghost" id="emEC">Mégse</button><button class="em-btn" id="emES">Mentés</button></div>');
     E('emEC').onclick = closeModal;
     E('emED').onclick = () => { if (confirm('Biztosan törlöd ezt a címet?')) { delOne(email); closeModal(); renderAll(); } };
     E('emES').onclick = () => {
       c.name = E('emEN').value.trim(); c.cat = E('emEK').value.trim(); c.phone = E('emEPh').value.trim(); c.lastSent = E('emEL').value || null;
-      const pp = E('emEP').checked; if (pp && !c.partner) c.partnerAt = today(); if (!pp) c.partnerAt = null; c.partner = pp;
+      c.stop = E('emEX').checked; const pp = E('emEP').checked; if (pp && !c.partner) c.partnerAt = today(); if (!pp) c.partnerAt = null; c.partner = pp;
       const r = E('emER').checked; if (r && !c.replied) c.repliedAt = today(); if (!r) c.repliedAt = null; c.replied = r;
       pushMany([c]); closeModal(); renderAll();
     };
   }
+  function openCall(email) {
+    const c = DBM.contacts[email]; if (!c) return; let res = 'nincs';
+    openModal('<h3 style="margin:0 0 6px;overflow-wrap:anywhere">📞 Hívás – ' + esc(c.name || c.email) + '</h3>' +
+      '<a class="em-btn" style="display:block;text-align:center;text-decoration:none" href="tel:' + esc((c.phone || '').replace(/[^\d+]/g, '')) + '">📞 ' + esc(c.phone || '') + ' – hívás indítása</a>' +
+      '<label class="em-lab">Mi lett az eredmény?</label><div class="em-callres" id="emCR">' + Object.keys(CALL).map(k => '<button data-r="' + k + '">' + CALL[k] + '</button>').join('') + '</div>' +
+      '<label class="em-lab">Megjegyzés</label><input class="em-f" id="emCN" maxlength="120" placeholder="pl. csütörtökön hívjam, a séf nincs bent">' +
+      '<label class="em-lab">Dátum</label><input type="date" class="em-f" id="emCD" value="' + today() + '">' +
+      '<div class="em-row"><button class="em-btn ghost" id="emCC">Mégse</button><button class="em-btn" id="emCS">Mentés</button></div>');
+    const paint = () => document.querySelectorAll('#emCR button').forEach(b => b.classList.toggle('on', b.dataset.r === res));
+    document.querySelectorAll('#emCR button').forEach(b => b.onclick = () => { res = b.dataset.r; paint(); }); paint();
+    E('emCC').onclick = closeModal;
+    E('emCS').onclick = () => {
+      const d = E('emCD').value || today(), note = E('emCN').value.trim();
+      c.calls = (c.calls || []).concat([{ date: d, res, note }]).slice(-20); c.callAt = d; c.callRes = res; c.callNote = note;
+      if (res === 'erdekli' || res === 'partner') { if (!c.replied) { c.replied = true; c.repliedAt = d; } }
+      if (res === 'partner' && !c.partner) { c.partner = true; c.partnerAt = d; }
+      if (res === 'nem') c.stop = true;
+      pushMany([c]); closeModal(); renderAll(); logActivity('Hívás: ' + (c.name || c.email) + ' – ' + CALL[res]);
+      toast('Mentve: ' + CALL[res] + (res === 'nincs' || res === 'vissza' ? ' – 2 nap múlva újra hívandó.' : '.'));
+    };
+  }
   function fb(txt, done) { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('A másolás nem sikerült.'); } ta.remove(); }
-  document.querySelectorAll('.em-seg button').forEach(b => b.onclick = () => { mode = b.dataset.m; E('emPCat').style.display = mode === 'add' ? '' : 'none'; document.querySelectorAll('.em-seg button').forEach(x => x.classList.toggle('on', x === b)); renderPaste(); });
+  document.querySelectorAll('.em-seg button').forEach(b => b.onclick = () => { mode = b.dataset.m; E('emAddOpts').style.display = mode === 'add' ? '' : 'none'; document.querySelectorAll('.em-seg button').forEach(x => x.classList.toggle('on', x === b)); renderPaste(); });
   E('emPaste').addEventListener('input', renderPaste);
+  E('emFirst').addEventListener('change', () => { const d = E('emFirstD'); d.style.display = firstOn() ? '' : 'none'; if (firstOn() && !d.value) d.value = today(); renderPaste(); });
   E('emClr').onclick = () => { E('emPaste').value = ''; renderPaste(); };
   E('emGo').onclick = commitPaste;
   E('emQ').addEventListener('input', renderList);
@@ -3584,6 +3629,7 @@ loadWal(); updateWalSub();
     if (e.target.closest('a')) return;
     const row = e.target.closest('.em-ct'); if (!row) return; const em = row.dataset.e, c = DBM.contacts[em]; if (!c) return;
     if (e.target.classList.contains('tick')) { if (e.target.checked) excluded.delete(em); else excluded.add(em); renderSend(); return; }
+    if (e.target.classList.contains('em-cbtn')) { openCall(em); return; }
     if (e.target.classList.contains('em-pbtn')) { c.partner = !c.partner; c.partnerAt = c.partner ? today() : null; pushMany([c]); renderAll(); return; }
     if (e.target.classList.contains('em-rbtn')) { c.replied = !c.replied; c.repliedAt = c.replied ? today() : null; pushMany([c]); renderAll(); return; }
     openEdit(em);
@@ -3603,7 +3649,7 @@ loadWal(); updateWalSub();
     }
   });
   E('emCsv').onclick = () => {
-    const rows = [['email', 'etterem', 'telefon', 'kategoria', 'partner', 'partner_datuma', 'hozzaadva', 'valaszolt', 'valasz_datuma', 'utolso_kuldes', 'kuldesek_szama']].concat(allC().map(c => [c.email, c.name || '', c.phone || '', c.cat || '', c.partner ? 'igen' : 'nem', c.partnerAt || '', c.added || '', c.replied ? 'igen' : 'nem', c.repliedAt || '', c.lastSent || '', c.sent || 0]));
+    const rows = [['email', 'etterem', 'telefon', 'utolso_hivas', 'hivas_eredmeny', 'nem_erdekli', 'kategoria', 'partner', 'partner_datuma', 'hozzaadva', 'valaszolt', 'valasz_datuma', 'utolso_kuldes', 'kuldesek_szama']].concat(allC().map(c => [c.email, c.name || '', c.phone || '', c.callAt || '', CALL[c.callRes] || '', c.stop ? 'igen' : 'nem', c.cat || '', c.partner ? 'igen' : 'nem', c.partnerAt || '', c.added || '', c.replied ? 'igen' : 'nem', c.repliedAt || '', c.lastSent || '', c.sent || 0]));
     const csv = '﻿' + rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(';')).join('\r\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'email-lista-' + today() + '.csv'; document.body.appendChild(a); a.click(); a.remove();
   };
