@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Email lista – Nagybani Gastro</title>
+<style>
+  :root { --g900:#0b3d20; --g800:#14532d; --g700:#1b7a3a; --g50:#eef7f0; --bg:#f1f6f2; --line:#d9e4dc; --muted:#5f7165; --red:#c62828; --amber:#8a5a00; --blue:#1a4fa3; --shadow:0 6px 18px rgba(11,61,32,.10); }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin:0; background:var(--bg); color:#17261c; font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; padding-bottom:40px; }
+  header { background:var(--g900); color:#fff; padding:14px 16px calc(12px); border-bottom:4px solid #ffb300; position:sticky; top:0; z-index:5; }
+  header h1 { margin:0; font-size:20px; } header small { opacity:.8; }
+  main { max-width:760px; margin:0 auto; padding:10px 12px; }
+  .card { background:#fff; border-radius:18px; padding:14px; margin:12px 0; box-shadow:var(--shadow); }
+  .card h2 { margin:0 0 8px; font-size:16px; color:var(--g800); }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:12px; }
+  .stat { background:#fff; border:2px solid var(--line); border-radius:14px; padding:8px 4px; text-align:center; cursor:pointer; font:inherit; }
+  .stat b { display:block; font-size:22px; color:var(--g800); } .stat small { color:var(--muted); font-size:11.5px; font-weight:700; }
+  .stat.on { border-color:var(--g700); background:var(--g50); } .stat.due b { color:var(--amber); }
+  .seg { display:flex; gap:6px; margin-bottom:8px; } .seg button { flex:1; border:2px solid var(--line); background:#fff; border-radius:12px; padding:9px 6px; font:inherit; font-weight:700; cursor:pointer; }
+  .seg button.on { background:var(--g50); border-color:var(--g700); color:var(--g800); }
+  textarea, input[type=text], input[type=search], input[type=date] { width:100%; font:inherit; padding:10px 12px; border:1.5px solid var(--line); border-radius:12px; background:#fff; }
+  textarea { min-height:96px; resize:vertical; }
+  .btn { border:none; border-radius:14px; padding:13px 16px; font:inherit; font-weight:800; cursor:pointer; background:var(--g700); color:#fff; }
+  .btn.ghost { background:#fff; color:var(--g800); border:1.5px solid var(--line); } .btn.warn { background:#fff; color:var(--red); border:1.5px solid #f0c4c4; }
+  .btn:disabled { opacity:.45; cursor:default; } .row { display:flex; gap:8px; margin-top:10px; } .row > * { flex:1; }
+  .sum { margin:8px 0 4px; font-size:14.5px; font-weight:700; } .sum .n { color:var(--g700); } .sum .d { color:var(--amber); } .sum .x { color:var(--red); }
+  .pv { max-height:200px; overflow:auto; border:1px solid var(--line); border-radius:12px; } .pv div { display:flex; justify-content:space-between; gap:8px; padding:6px 10px; border-bottom:1px solid var(--line); font-size:14px; } .pv div:last-child { border:none; }
+  .pv span:first-child { overflow-wrap:anywhere; } .pv .t { flex:none; font-weight:800; font-size:12.5px; }
+  .t.new { color:var(--g700); } .t.dup { color:var(--amber); } .t.bad { color:var(--red); } .t.mark { color:var(--blue); }
+  .pv .dupr { background:#fff7e0; } .pv .badr { background:#fdeaea; }
+  .send { background:linear-gradient(135deg,#fff7e0,#fff); border:2px solid #ffd770; }
+  .send p { margin:0 0 4px; font-size:14.5px; } .send .big { font-size:20px; font-weight:800; color:var(--amber); }
+  label.chk { display:flex; align-items:center; gap:8px; font-size:14px; margin-top:8px; } label.chk input { width:20px; height:20px; accent-color:var(--g700); }
+  .ct { display:flex; align-items:center; gap:10px; padding:10px 4px; border-bottom:1px solid var(--line); }
+  .ct:last-child { border:none; } .ct .tick { width:22px; height:22px; accent-color:var(--g700); flex:none; }
+  .ct .mid { flex:1; min-width:0; cursor:pointer; } .ct .mid b { display:block; overflow-wrap:anywhere; font-size:15px; } .ct .mid small { color:var(--muted); font-size:12.5px; display:block; }
+  .pill { display:inline-block; border-radius:99px; padding:1px 8px; font-size:11.5px; font-weight:800; margin-right:4px; background:#fde7e7; color:var(--red); } .pill.ok { background:#e3f6e8; color:var(--g700); } .pill.due { background:#fff3d6; color:var(--amber); }
+  .rbtn { flex:none; border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:8px 10px; font:inherit; font-size:13px; font-weight:800; cursor:pointer; color:var(--g800); }
+  .rbtn.on { background:#e3f6e8; border-color:var(--g700); }
+  .empty { text-align:center; color:var(--muted); padding:18px 8px; }
+  .note { color:var(--muted); font-size:12.5px; margin:14px 4px; }
+  #toast { position:fixed; left:12px; right:12px; bottom:calc(14px + env(safe-area-inset-bottom)); background:#17261c; color:#fff; border-radius:14px; padding:12px 14px; z-index:30; display:none; font-size:14.5px; }
+  #toast button { margin-left:10px; background:#ffb300; border:none; border-radius:8px; padding:5px 12px; font-weight:800; }
+  #ov { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:20; display:none; align-items:flex-end; justify-content:center; } #ov.open { display:flex; }
+  #ov .sheet { background:#fff; border-radius:20px 20px 0 0; padding:16px; width:100%; max-width:560px; max-height:90vh; overflow:auto; } #ov label.f { display:block; font-size:12.5px; font-weight:700; color:var(--muted); margin:10px 0 4px; text-transform:uppercase; }
+</style>
+</head>
+<body>
+<header><h1>📧 Email lista</h1><small>Árlista-címek, válaszok, heti kiküldés</small></header>
+<main>
+  <div class="stats" id="stats"></div>
+
+  <div class="card send" id="sendCard"></div>
+
+  <div class="card">
+    <h2>Címek beillesztése</h2>
+    <div class="seg"><button data-m="add" class="on">➕ Új címek</button><button data-m="reply">✅ Válaszoltak</button></div>
+    <textarea id="paste" placeholder="Illessz be egy vagy több email címet (vesszővel, pontosvesszővel, szóközzel vagy sorokra tagolva; „Név &lt;cim@pelda.hu&gt;” is jó)"></textarea>
+    <div class="sum" id="sum"></div>
+    <div class="pv" id="pv" style="display:none"></div>
+    <div class="row"><button class="btn ghost" id="clr">Törlés</button><button class="btn" id="go" disabled>Mentés</button></div>
+  </div>
+
+  <div class="card">
+    <h2 id="lstT">Címek</h2>
+    <input type="search" id="q" placeholder="Keresés cím vagy név szerint…">
+    <div id="list"></div>
+  </div>
+
+  <div class="card">
+    <h2>Beállítások és mentés</h2>
+    <label class="chk"><input type="checkbox" id="skipR"> Akik már válaszoltak, nekik nem küldök (ne legyenek esedékesek)</label>
+    <div class="row"><button class="btn ghost" id="csv">⬇ Mentés CSV-be</button></div>
+    <div class="note">Az adatok ebben a böngészőben tárolódnak (ezen az eszközön). Rendszeresen mentsd le CSV-be, és törlés/böngészőadat-ürítés előtt is.</div>
+  </div>
+</main>
+<div id="toast"></div>
+<div id="ov"><div class="sheet" id="sheet"></div></div>
+
+<script>
+const KEY = 'nbg_email_lista_v1', EVERY = 7;
+let DB = { contacts: {}, skipReplied: false };
+let mode = 'add', flt = 'due', excluded = new Set(), lastUndo = null;
+const $ = id => document.getElementById(id);
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function load() { try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && d.contacts) DB = Object.assign({ skipReplied: false }, d); } catch (e) { /* ignore */ } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) { toast('⚠️ Nem sikerült menteni a böngészőben!'); } }
+function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function dayNum(s) { const [y, m, d] = s.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 86400000); }
+function daysSince(s) { return dayNum(today()) - dayNum(s); }
+function addDays(s, n) { const d = new Date((dayNum(s) + n) * 86400000); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); }
+function fmtD(s) { if (!s) return ''; const [y, m, d] = s.split('-'); return y + '.' + m + '.' + d + '.'; }
+function toast(msg, undo) {
+  const t = $('toast'); t.innerHTML = esc(msg) + (undo ? '<button id="tu">Visszavonás</button>' : ''); t.style.display = 'block';
+  if (undo) $('tu').onclick = () => { undo(); t.style.display = 'none'; };
+  clearTimeout(toast._t); toast._t = setTimeout(() => { t.style.display = 'none'; }, undo ? 9000 : 3500);
+}
+
+/* ---------- beillesztett szöveg feldolgozása ---------- */
+const RE = /[a-z0-9._%+'\-]+@[a-z0-9\-]+(?:\.[a-z0-9\-]+)+/gi;
+function parse(text) {
+  const out = [], seen = new Set();
+  text.split(/[\n\r,;\t]+/).forEach(tok => {
+    tok = tok.trim(); if (!tok) return; const tok0 = tok;
+    const found = tok.match(RE) || [];
+    if (!found.length) { if (tok.includes('@')) out.push({ raw: tok, status: 'bad' }); return; }
+    found.forEach(f => { tok = tok.replace(f, ' '); });
+    tok.split(/\s+/).forEach(w => { if (w.includes('@')) out.push({ raw: w, status: 'bad' }); });
+    tok = tok0;
+    const name = found.length === 1 ? tok.replace(found[0], '').replace(/[<>"'()]/g, '').replace(/\s+/g, ' ').trim() : '';
+    found.forEach(e0 => {
+      const email = e0.toLowerCase().replace(/^[.']+|[.']+$/g, '');
+      const o = { email, name: name || '' };
+      if (seen.has(email)) o.status = 'dupPaste';
+      else if (DB.contacts[email]) o.status = 'dup';
+      else o.status = 'new';
+      seen.add(email); out.push(o);
+    });
+  });
+  return out;
+}
+function renderPaste() {
+  const items = parse($('paste').value), pv = $('pv');
+  if (!items.length) { $('sum').textContent = ''; pv.style.display = 'none'; $('go').disabled = true; $('go').textContent = mode === 'add' ? 'Mentés' : 'Megjelölés'; return; }
+  const c = { new: 0, dup: 0, dupPaste: 0, bad: 0 }; items.forEach(i => c[i.status]++);
+  let sum, nAct;
+  if (mode === 'add') {
+    nAct = c.new;
+    sum = '<span class="n">' + c.new + ' új</span>' + (c.dup + c.dupPaste ? ' · <span class="d">' + (c.dup + c.dupPaste) + ' ismétlés (nem mentem el)</span>' : '') + (c.bad ? ' · <span class="x">' + c.bad + ' hibás</span>' : '');
+  } else {
+    const rep = items.filter(i => i.status === 'dup' && !DB.contacts[i.email].replied).length;
+    nAct = rep;
+    sum = '<span class="n">' + rep + ' megjelölhető válaszoltként</span>' + (c.new ? ' · <span class="d">' + c.new + ' nincs a listában</span>' : '') + (c.bad ? ' · <span class="x">' + c.bad + ' hibás</span>' : '');
+  }
+  $('sum').innerHTML = sum;
+  pv.style.display = 'block';
+  pv.innerHTML = items.map(i => {
+    if (i.status === 'bad') return '<div class="badr"><span>' + esc(i.raw) + '</span><span class="t bad">hibás cím</span></div>';
+    const cc = DB.contacts[i.email];
+    if (mode === 'add') {
+      if (i.status === 'new') return '<div><span>' + esc(i.email) + (i.name ? ' <small>(' + esc(i.name) + ')</small>' : '') + '</span><span class="t new">új</span></div>';
+      return '<div class="dupr"><span>' + esc(i.email) + '</span><span class="t dup">ISMÉTLÉS' + (i.status === 'dup' ? ' · ' + fmtD(cc.added) + ' óta megvan' : '') + '</span></div>';
+    }
+    if (i.status === 'new') return '<div class="dupr"><span>' + esc(i.email) + '</span><span class="t dup">nincs a listában</span></div>';
+    if (i.status === 'dupPaste') return '<div class="dupr"><span>' + esc(i.email) + '</span><span class="t dup">ismétlés</span></div>';
+    return '<div><span>' + esc(i.email) + '</span><span class="t ' + (cc.replied ? 'dup' : 'mark') + '">' + (cc.replied ? 'már válaszolt' : 'válaszolt ✓') + '</span></div>';
+  }).join('');
+  $('go').disabled = !nAct; $('go').textContent = (mode === 'add' ? 'Mentés' : 'Megjelölés') + (nAct ? ' (' + nAct + ')' : '');
+}
+function commitPaste() {
+  const items = parse($('paste').value);
+  if (mode === 'add') {
+    let n = 0, d = 0;
+    items.forEach(i => { if (i.status === 'new') { DB.contacts[i.email] = { email: i.email, name: i.name || '', added: today(), replied: false, repliedAt: null, lastSent: null, sent: 0 }; n++; } else if (i.status !== 'bad') d++; });
+    save(); toast(n + ' új cím mentve' + (d ? ', ' + d + ' ismétlést kihagytam' : '') + '.');
+    if (n) flt = 'due';
+  } else {
+    let n = 0;
+    items.forEach(i => { const c = i.status === 'dup' && DB.contacts[i.email]; if (c && !c.replied) { c.replied = true; c.repliedAt = today(); n++; } });
+    save(); toast(n + ' cím megjelölve válaszoltként.');
+  }
+  $('paste').value = ''; renderAll();
+}
+
+/* ---------- esedékesség ---------- */
+function isDue(c) { if (DB.skipReplied && c.replied) return false; return !c.lastSent || daysSince(c.lastSent) >= EVERY; }
+function allC() { return Object.keys(DB.contacts).map(k => DB.contacts[k]); }
+function dueList() { return allC().filter(isDue).sort((a, b) => (a.lastSent || '').localeCompare(b.lastSent || '') || a.email.localeCompare(b.email)); }
+function sendInfo(c) {
+  if (!c.lastSent) return '<span class="pill due">még nem kapott levelet</span>';
+  const ds = daysSince(c.lastSent), next = addDays(c.lastSent, EVERY);
+  if (isDue(c)) return '<span class="pill due">esedékes</span>utoljára: ' + fmtD(c.lastSent) + ' (' + ds + ' napja)';
+  const left = EVERY - ds;
+  return 'utoljára: ' + fmtD(c.lastSent) + ' · következő: ' + fmtD(next) + ' (' + (left === 1 ? 'holnap' : left + ' nap múlva') + ')';
+}
+
+/* ---------- megjelenítés ---------- */
+function renderStats() {
+  const a = allC(), due = dueList().length, rep = a.filter(c => c.replied).length;
+  const defs = [['due', 'Esedékes', due], ['wait', 'Nem válaszolt', a.length - rep], ['replied', 'Válaszolt', rep], ['all', 'Mind', a.length]];
+  $('stats').innerHTML = defs.map(d => '<button class="stat ' + (d[0] === 'due' ? 'due ' : '') + (flt === d[0] ? 'on' : '') + '" data-f="' + d[0] + '"><b>' + d[2] + '</b><small>' + d[1] + '</small></button>').join('');
+}
+function renderSend() {
+  const due = dueList(), sel = due.filter(c => !excluded.has(c.email)), el = $('sendCard');
+  if (!allC().length) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  if (!due.length) {
+    const nxt = allC().filter(c => c.lastSent).map(c => addDays(c.lastSent, EVERY)).sort()[0];
+    el.innerHTML = '<h2>📬 Heti kiküldés</h2><p class="big">Ma nincs kinek küldeni ✓</p>' + (nxt ? '<p>Következő esedékes: <b>' + fmtD(nxt) + '</b></p>' : ''); return;
+  }
+  el.innerHTML = '<h2>📬 Heti kiküldés</h2><p class="big">' + due.length + ' címnek esedékes az email</p><p>Kijelölve: <b>' + sel.length + '</b> (a címek listájában a pipát kivéve kihagyhatsz valakit).</p>' +
+    '<div class="row"><button class="btn ghost" id="cpy"' + (sel.length ? '' : ' disabled') + '>📋 Címek másolása</button><button class="btn" id="sent"' + (sel.length ? '' : ' disabled') + '>✓ Kiküldtem (' + sel.length + ')</button></div>';
+}
+function renderList() {
+  const q = $('q').value.trim().toLowerCase();
+  let l = allC();
+  if (flt === 'due') l = dueList(); else if (flt === 'wait') l = l.filter(c => !c.replied); else if (flt === 'replied') l = l.filter(c => c.replied);
+  if (q) l = l.filter(c => c.email.includes(q) || (c.name || '').toLowerCase().includes(q));
+  if (flt !== 'due') l.sort((a, b) => (b.added || '').localeCompare(a.added || '') || a.email.localeCompare(b.email));
+  $('lstT').textContent = { due: 'Esedékes címek', wait: 'Még nem válaszoltak', replied: 'Válaszoltak', all: 'Minden cím' }[flt] + ' (' + l.length + ')';
+  $('list').innerHTML = l.length ? l.map(c =>
+    '<div class="ct" data-e="' + esc(c.email) + '">' + (flt === 'due' ? '<input type="checkbox" class="tick" ' + (excluded.has(c.email) ? '' : 'checked') + '>' : '') +
+    '<div class="mid"><b>' + esc(c.email) + '</b><small>' + (c.name ? esc(c.name) + ' · ' : '') + (c.replied ? '<span class="pill ok">válaszolt ' + fmtD(c.repliedAt) + '</span>' : '<span class="pill">nem válaszolt</span>') + '</small><small>' + sendInfo(c) + '</small></div>' +
+    '<button class="rbtn ' + (c.replied ? 'on' : '') + '">' + (c.replied ? '✓ Válaszolt' : 'Válaszolt?') + '</button></div>').join('')
+    : '<div class="empty">' + (allC().length ? 'Nincs találat ebben a nézetben.' : 'Még nincs egyetlen cím sem. Illessz be párat fent!') + '</div>';
+}
+function renderAll() { $('skipR').checked = !!DB.skipReplied; renderStats(); renderSend(); renderList(); renderPaste(); }
+
+/* ---------- szerkesztő ---------- */
+function openEdit(email) {
+  const c = DB.contacts[email]; if (!c) return;
+  $('sheet').innerHTML = '<h2 style="margin:0 0 4px">' + esc(c.email) + '</h2><small style="color:var(--muted)">hozzáadva: ' + fmtD(c.added) + ' · eddig ' + (c.sent || 0) + ' kiküldés</small>' +
+    '<label class="f">Név / megjegyzés</label><input type="text" id="eN" value="' + esc(c.name) + '">' +
+    '<label class="f">Utolsó kiküldés dátuma</label><input type="date" id="eL" value="' + esc(c.lastSent || '') + '">' +
+    '<label class="chk"><input type="checkbox" id="eR"' + (c.replied ? ' checked' : '') + '> Válaszolt</label>' +
+    '<div class="row"><button class="btn warn" id="eD">Törlés</button><button class="btn ghost" id="eC">Mégse</button><button class="btn" id="eS">Mentés</button></div>';
+  $('ov').classList.add('open');
+  $('eC').onclick = () => $('ov').classList.remove('open');
+  $('eD').onclick = () => { if (confirm('Biztosan törlöd ezt a címet?')) { delete DB.contacts[email]; save(); $('ov').classList.remove('open'); renderAll(); } };
+  $('eS').onclick = () => {
+    c.name = $('eN').value.trim(); c.lastSent = $('eL').value || null;
+    const r = $('eR').checked; if (r && !c.replied) c.repliedAt = today(); if (!r) c.repliedAt = null; c.replied = r;
+    save(); $('ov').classList.remove('open'); renderAll();
+  };
+}
+
+/* ---------- események ---------- */
+document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { mode = b.dataset.m; document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b)); renderPaste(); });
+$('paste').addEventListener('input', renderPaste);
+$('clr').onclick = () => { $('paste').value = ''; renderPaste(); };
+$('go').onclick = commitPaste;
+$('q').addEventListener('input', renderList);
+$('stats').addEventListener('click', e => { const b = e.target.closest('.stat'); if (b) { flt = b.dataset.f; renderStats(); renderList(); } });
+$('skipR').onchange = () => { DB.skipReplied = $('skipR').checked; save(); renderAll(); };
+$('list').addEventListener('click', e => {
+  const row = e.target.closest('.ct'); if (!row) return; const em = row.dataset.e, c = DB.contacts[em];
+  if (e.target.classList.contains('tick')) { if (e.target.checked) excluded.delete(em); else excluded.add(em); renderSend(); return; }
+  if (e.target.classList.contains('rbtn')) { c.replied = !c.replied; c.repliedAt = c.replied ? today() : null; save(); renderAll(); return; }
+  openEdit(em);
+});
+$('ov').addEventListener('click', e => { if (e.target === $('ov')) $('ov').classList.remove('open'); });
+$('sendCard').addEventListener('click', e => {
+  const sel = dueList().filter(c => !excluded.has(c.email));
+  if (e.target.id === 'cpy') {
+    const txt = sel.map(c => c.email).join(', ');
+    const done = () => toast(sel.length + ' cím a vágólapra másolva – illeszd be a levél „Titkos másolat” (Bcc) mezőjébe.');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, () => fb(txt, done)); else fb(txt, done);
+  }
+  if (e.target.id === 'sent') {
+    if (!confirm(sel.length + ' címnél rögzítem, hogy ma kiküldted az árlistát. Rendben?')) return;
+    const snap = sel.map(c => [c.email, c.lastSent, c.sent || 0]), t = today();
+    sel.forEach(c => { c.lastSent = t; c.sent = (c.sent || 0) + 1; });
+    excluded.clear(); save(); renderAll();
+    toast(sel.length + ' cím kiküldve – a következő esedékesség: ' + fmtD(addDays(t, EVERY)), () => { snap.forEach(s => { const c = DB.contacts[s[0]]; if (c) { c.lastSent = s[1]; c.sent = s[2]; } }); save(); renderAll(); });
+  }
+});
+function fb(txt, done) { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('A másolás nem sikerült.'); } ta.remove(); }
+$('csv').onclick = () => {
+  const rows = [['email', 'nev', 'hozzaadva', 'valaszolt', 'valasz_datuma', 'utolso_kuldes', 'kuldesek_szama']].concat(allC().map(c => [c.email, c.name || '', c.added || '', c.replied ? 'igen' : 'nem', c.repliedAt || '', c.lastSent || '', c.sent || 0]));
+  const csv = '﻿' + rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(';')).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'email-lista-' + today() + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+};
+load(); renderAll();
+</script>
+</body>
+</html>

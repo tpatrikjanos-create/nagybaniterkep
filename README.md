@@ -180,3 +180,9 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - A GPS gomb állapotot mutat: „Keresés…”, „GPS ✓”, „GPS ✗ / Nincs jel”; rákoppintva megmondja az okot és újrapróbálja.
 - Letiltott helyengedély, nem https cím, gyenge jel (automatikus átváltás alacsony pontosságra) és „nem a piacon vagy” (a térkép csak a Nagybanit mutatja, ilyenkor a pont nincs a látható területen, a távolságot kiírja) külön üzenetet kap.
 - A kék pont létrehozása hibatűrőbb; a térkép megnyitásakor az app újra megpróbálja a helymeghatározást.
+
+## Email lista (email-lista.html, önálló oldal)
+- Email címek beillesztése (vessző/pontosvessző/sor/„Név <cím>” formátum); ismétlés (már a listában van, vagy többször szerepel a beillesztésben) jelzése és nem mentése; hibás címek jelzése.
+- Válaszolt / nem válaszolt követés (soronként, vagy „Válaszoltak” módban tömegesen beillesztve).
+- Heti kiküldés: 7 nap után esedékes a cím; „Címek másolása” (Bcc-be) és „Kiküldtem” (visszavonható); opció: a válaszolóknak ne legyen esedékes.
+- Adatok a böngészőben (localStorage), CSV-mentéssel.
