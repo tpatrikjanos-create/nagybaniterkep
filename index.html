@@ -324,6 +324,7 @@
   .em-ct { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--line); } .em-ct:last-child { border: none; } .em-ct .tick { width: 22px; height: 22px; accent-color: var(--g700); flex: none; }
   .em-ct .mid { flex: 1; min-width: 0; cursor: pointer; } .em-ct .mid b { display: block; overflow-wrap: anywhere; font-size: 15px; } .em-ct .mid small { color: var(--muted); font-size: 12.5px; display: block; }
   .em-pill { display: inline-block; border-radius: 99px; padding: 1px 8px; font-size: 11.5px; font-weight: 800; margin-right: 4px; background: #fde7e7; color: #c62828; } .em-pill.ok { background: #e3f6e8; color: var(--g700); } .em-pill.due { background: #fff3d6; color: #8a5a00; }
+  .em-qa { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin: 10px 0 2px; } .em-qa .em-rbtn { padding: 10px 4px; font-size: 13px; }
   a.em-rbtn { display: block; text-align: center; text-decoration: none; }
   .em-callres { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .em-callres button { border: 2px solid var(--line); background: #fff; border-radius: 12px; padding: 10px 6px; font: inherit; font-weight: 700; cursor: pointer; } .em-callres button.on { background: var(--g50); border-color: var(--g700); color: var(--g800); }
   .em-acts { display: flex; flex-direction: column; gap: 6px; flex: none; } .em-pill.cat { background: #e3edff; color: #1a4fa3; }
@@ -3518,9 +3519,20 @@ loadWal(); updateWalSub();
     if (c.callAt) h += '<span class="em-pill cat">📞 ' + fmtD(c.callAt) + ' · ' + esc(CALL[c.callRes] || '') + (c.callNote ? ' – ' + esc(c.callNote) : '') + '</span>';
     return h;
   }
+  function mutate(c, fn, msg) {
+    const snap = JSON.parse(JSON.stringify(c)); fn(c); pushMany([c]); renderAll();
+    toast(msg, () => { Object.keys(c).forEach(k => delete c[k]); Object.assign(c, snap); pushMany([c]); renderAll(); });
+  }
+  function toggleSent(c) {
+    const nm = c.name || c.email;
+    if (c.lastSent === today() && c.prevSent) mutate(c, x => { x.lastSent = x.prevSent.lastSent; x.sent = x.prevSent.sent; delete x.prevSent; }, 'Kiküldés visszavonva: ' + nm);
+    else mutate(c, x => { x.prevSent = { lastSent: x.lastSent || null, sent: x.sent || 0 }; x.lastSent = today(); x.sent = (x.sent || 0) + 1; }, '✉️ Levél kiküldve: ' + nm + ' – következő: ' + fmtD(addDays(today(), EVERY)));
+  }
+  function toggleReplied(c) { const was = c.replied; mutate(c, x => { x.replied = !x.replied; x.repliedAt = x.replied ? today() : null; }, was ? 'Válaszolt jelölés törölve.' : 'Megjelölve: válaszolt.'); }
+  function togglePartner(c) { const was = c.partner; mutate(c, x => { x.partner = !x.partner; x.partnerAt = x.partner ? today() : null; }, was ? 'Partner jelölés törölve.' : '🤝 Megjelölve: partner lett.'); }
   function acts(c) {
     if (flt === 'call') return '<div class="em-acts"><a class="em-rbtn on" href="tel:' + esc((c.phone || '').replace(/[^\d+]/g, '')) + '">📞 Hívás</a><button class="em-rbtn em-cbtn">Felhívtam</button></div>';
-    return '<div class="em-acts"><button class="em-rbtn ' + (c.replied ? 'on' : '') + '">' + (c.replied ? '✓ Válaszolt' : 'Válaszolt?') + '</button><button class="em-rbtn em-pbtn ' + (c.partner ? 'on' : '') + '">' + (c.partner ? '🤝 Partner' : 'Partner?') + '</button></div>';
+    return '<div class="em-acts"><button class="em-rbtn em-sbtn ' + (c.lastSent === today() ? 'on' : '') + '">' + (c.lastSent === today() ? '✉️ Ma kiküldve' : '✉️ Kiküldve') + '</button><button class="em-rbtn ' + (c.replied ? 'on' : '') + '">' + (c.replied ? '✓ Válaszolt' : 'Válaszolt?') + '</button><button class="em-rbtn em-pbtn ' + (c.partner ? 'on' : '') + '">' + (c.partner ? '🤝 Partner' : 'Partner?') + '</button></div>';
   }
   const allC = () => Object.keys(DBM.contacts).map(k => DBM.contacts[k]);
   const dueList = () => allC().filter(isDue).sort((a, b) => (a.lastSent || '').localeCompare(b.lastSent || '') || a.email.localeCompare(b.email));
@@ -3575,8 +3587,10 @@ loadWal(); updateWalSub();
   function renderAll() { E('emSkip').checked = !!DBM.skip; renderCats(); renderStats(); renderSend(); renderList(); renderPaste(); updateMailSub(); }
   window.renderMail = renderAll;
   function openEdit(email) {
-    const c = DBM.contacts[email]; if (!c) return;
+    const c = DBM.contacts[email]; if (!c) return; E('emToast').style.display = 'none';
     openModal('<h3 style="margin:0 0 4px;overflow-wrap:anywhere">' + esc(c.email) + '</h3><small style="color:var(--muted)">hozzáadva: ' + fmtD(c.added) + ' · eddig ' + (c.sent || 0) + ' kiküldés</small>' +
+      '<div class="em-qa"><button class="em-rbtn ' + (c.lastSent === today() ? 'on' : '') + '" id="emQS">' + (c.lastSent === today() ? '✉️ Ma kiküldve (visszavon)' : '✉️ Levél kiküldve') + '</button><button class="em-rbtn ' + (c.replied ? 'on' : '') + '" id="emQR">' + (c.replied ? '✓ Válaszolt (törlés)' : '✅ Válaszolt') + '</button><button class="em-rbtn ' + (c.partner ? 'on' : '') + '" id="emQP">' + (c.partner ? '🤝 Partner (törlés)' : '🤝 Partner') + '</button></div>' +
+      (c.phone ? '<button class="em-rbtn" id="emQC" style="width:100%;margin-top:6px">📞 Felhívtam…</button>' : '') +
       '<label class="em-lab">Étterem neve</label><input type="text" class="em-f" id="emEN" value="' + esc(c.name) + '">' +
       '<label class="em-lab">Telefonszám</label><input type="tel" class="em-f" id="emEPh" value="' + esc(c.phone || '') + '">' +
       '<label class="em-lab">Kategória (pl. gyros, magyaros)</label><input type="text" class="em-f" id="emEK" list="emCats" maxlength="40" value="' + esc(c.cat || '') + '">' +
@@ -3586,6 +3600,10 @@ loadWal(); updateWalSub();
       '<label class="em-chk"><input type="checkbox" id="emEX"' + (c.stop ? ' checked' : '') + '> ⛔ Nem érdekli – ne kapjon több emailt, ne legyen hívandó</label>' +
       '<div class="em-row"><button class="em-btn warn" id="emED">Törlés</button><button class="em-btn ghost" id="emEC">Mégse</button><button class="em-btn" id="emES">Mentés</button></div>');
     E('emEC').onclick = closeModal;
+    E('emQS').onclick = () => { closeModal(); toggleSent(c); };
+    E('emQR').onclick = () => { closeModal(); toggleReplied(c); };
+    E('emQP').onclick = () => { closeModal(); togglePartner(c); };
+    if (c.phone) E('emQC').onclick = () => openCall(email);
     E('emED').onclick = () => { if (confirm('Biztosan törlöd ezt a címet?')) { delOne(email); closeModal(); renderAll(); } };
     E('emES').onclick = () => {
       c.name = E('emEN').value.trim(); c.cat = E('emEK').value.trim(); c.phone = E('emEPh').value.trim(); c.lastSent = E('emEL').value || null;
@@ -3630,8 +3648,9 @@ loadWal(); updateWalSub();
     const row = e.target.closest('.em-ct'); if (!row) return; const em = row.dataset.e, c = DBM.contacts[em]; if (!c) return;
     if (e.target.classList.contains('tick')) { if (e.target.checked) excluded.delete(em); else excluded.add(em); renderSend(); return; }
     if (e.target.classList.contains('em-cbtn')) { openCall(em); return; }
-    if (e.target.classList.contains('em-pbtn')) { c.partner = !c.partner; c.partnerAt = c.partner ? today() : null; pushMany([c]); renderAll(); return; }
-    if (e.target.classList.contains('em-rbtn')) { c.replied = !c.replied; c.repliedAt = c.replied ? today() : null; pushMany([c]); renderAll(); return; }
+    if (e.target.classList.contains('em-sbtn')) { toggleSent(c); return; }
+    if (e.target.classList.contains('em-pbtn')) { togglePartner(c); return; }
+    if (e.target.classList.contains('em-rbtn')) { toggleReplied(c); return; }
     openEdit(em);
   });
   E('emSend').addEventListener('click', e => {

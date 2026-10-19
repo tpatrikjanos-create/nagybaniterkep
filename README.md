@@ -206,3 +206,8 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - „Hívandó” nézet: akinek van telefonszáma, már kapott levelet, de nem válaszolt – a következő lépés a telefonálás. A soron „📞 Hívás” (tárcsáz) és „Felhívtam” gomb.
 - Hívás eredménye: nem vette fel / visszahívást kért (2 nap múlva újra hívandó), érdekli (válaszoltnak számít), partner lett, nem érdekli (nem kap több emailt, nincs a hívandók közt); megjegyzéssel és dátummal, a naplóba is kerül; CSV-ben külön oszlopok.
 - Beillesztéskor „✉️ Az első levél már ki van küldve nekik” (dátummal): az új (és a még nem kiküldött meglévő) címek kiküldöttként kerülnek fel, így a heti esedékesség és a hívandó lista rögtön jó.
+
+## v3.17 – Email lista: gyors gombok (kiküldve / válaszolt / partner)
+- A soron új „✉️ Kiküldve” gomb (ma kiküldve; újra megnyomva visszavonja) a „Válaszolt?” és „Partner?” mellett.
+- A címre koppintva megnyíló ablak tetején ugyanez a három gomb (Levél kiküldve, Válaszolt, Partner), plusz „📞 Felhívtam…”, ha van telefonszám.
+- A „Válaszolt” és a „Partner” jelölés bármikor törölhető (újra megnyomva), minden gyors gomb után „Visszavonás” a felugró sávban.
