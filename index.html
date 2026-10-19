@@ -3573,7 +3573,7 @@ loadWal(); updateWalSub();
     E('emLstT').textContent = { due: 'Esedékes címek', wait: 'Még nem válaszoltak', replied: 'Válaszoltak', partner: 'Partnerek', call: 'Hívandó címek (nem válaszoltak, telefonálás a következő lépés)', all: 'Minden cím' }[flt] + ' (' + l.length + ')';
     E('emList').innerHTML = l.length ? l.map(c =>
       '<div class="em-ct" data-e="' + esc(c.email) + '">' + (flt === 'due' ? '<input type="checkbox" class="tick" ' + (excluded.has(c.email) ? '' : 'checked') + '>' : '') +
-      '<div class="mid"><b>' + esc(c.name || c.email) + '</b>' + '<small>' + (c.name ? esc(c.email) : '') + (c.phone ? (c.name ? ' · ' : '') + '<a href="tel:' + esc(c.phone.replace(/[^\d+]/g, '')) + '" style="color:var(--blue,#1a4fa3);font-weight:700;text-decoration:none">📞 ' + esc(c.phone) + '</a>' : '') + '</small>' +
+      '<div class="mid"><b>' + esc(c.name || c.email) + '</b>' + '<small>' + (c.name ? esc(c.email) : '') + (c.phone ? (c.name ? ' · ' : '') + '<span style="font-weight:700;color:#1a4fa3">📞 ' + esc(c.phone) + '</span>' : '') + '</small>' +
       '<small>' + (c.cat ? '<span class="em-pill cat">' + esc(c.cat) + '</span>' : '') + (c.partner ? '<span class="em-pill ok">🤝 partner' + (c.partnerAt ? ' ' + fmtD(c.partnerAt) : '') + '</span>' : '') + (c.replied ? '<span class="em-pill ok">válaszolt ' + fmtD(c.repliedAt) + '</span>' : '<span class="em-pill">nem válaszolt</span>') + '</small><small>' + callPills(c) + sendInfo(c) + '</small></div>' +
       acts(c) + '</div>').join('')
       : '<div class="em-empty">' + (allC().length ? 'Nincs találat ebben a nézetben.' : 'Még nincs egyetlen cím sem. Illessz be párat fent!') + '</div>';
@@ -3588,11 +3588,11 @@ loadWal(); updateWalSub();
   window.renderMail = renderAll;
   function openEdit(email) {
     const c = DBM.contacts[email]; if (!c) return; E('emToast').style.display = 'none';
-    openModal('<h3 style="margin:0 0 4px;overflow-wrap:anywhere">' + esc(c.email) + '</h3><small style="color:var(--muted)">hozzáadva: ' + fmtD(c.added) + ' · eddig ' + (c.sent || 0) + ' kiküldés</small>' +
+    openModal('<div style="display:flex;align-items:center;gap:8px"><h3 style="margin:0;overflow-wrap:anywhere;flex:1;min-width:0">' + esc(c.email) + '</h3><button class="em-rbtn" id="emCpE">📋 Másolás</button></div><small style="color:var(--muted)">hozzáadva: ' + fmtD(c.added) + ' · eddig ' + (c.sent || 0) + ' kiküldés</small>' +
       '<div class="em-qa"><button class="em-rbtn ' + (c.lastSent === today() ? 'on' : '') + '" id="emQS">' + (c.lastSent === today() ? '✉️ Ma kiküldve (visszavon)' : '✉️ Levél kiküldve') + '</button><button class="em-rbtn ' + (c.replied ? 'on' : '') + '" id="emQR">' + (c.replied ? '✓ Válaszolt (törlés)' : '✅ Válaszolt') + '</button><button class="em-rbtn ' + (c.partner ? 'on' : '') + '" id="emQP">' + (c.partner ? '🤝 Partner (törlés)' : '🤝 Partner') + '</button></div>' +
       (c.phone ? '<button class="em-rbtn" id="emQC" style="width:100%;margin-top:6px">📞 Felhívtam…</button>' : '') +
       '<label class="em-lab">Étterem neve</label><input type="text" class="em-f" id="emEN" value="' + esc(c.name) + '">' +
-      '<label class="em-lab">Telefonszám</label><input type="tel" class="em-f" id="emEPh" value="' + esc(c.phone || '') + '">' +
+      '<label class="em-lab">Telefonszám</label><div style="display:flex;gap:6px"><input type="tel" class="em-f" id="emEPh" value="' + esc(c.phone || '') + '" style="flex:1;min-width:0"><button class="em-rbtn" id="emCpP">📋</button></div>' +
       '<label class="em-lab">Kategória (pl. gyros, magyaros)</label><input type="text" class="em-f" id="emEK" list="emCats" maxlength="40" value="' + esc(c.cat || '') + '">' +
       '<label class="em-lab">Utolsó kiküldés dátuma</label><input type="date" class="em-f" id="emEL" value="' + esc(c.lastSent || '') + '">' +
       '<label class="em-chk"><input type="checkbox" id="emER"' + (c.replied ? ' checked' : '') + '> Válaszolt</label>' +
@@ -3600,6 +3600,8 @@ loadWal(); updateWalSub();
       '<label class="em-chk"><input type="checkbox" id="emEX"' + (c.stop ? ' checked' : '') + '> ⛔ Nem érdekli – ne kapjon több emailt, ne legyen hívandó</label>' +
       '<div class="em-row"><button class="em-btn warn" id="emED">Törlés</button><button class="em-btn ghost" id="emEC">Mégse</button><button class="em-btn" id="emES">Mentés</button></div>');
     E('emEC').onclick = closeModal;
+    E('emCpE').onclick = () => copyTxt(c.email, 'Email cím');
+    E('emCpP').onclick = () => { const v = E('emEPh').value.trim(); if (v) copyTxt(v, 'Telefonszám'); };
     E('emQS').onclick = () => { closeModal(); toggleSent(c); };
     E('emQR').onclick = () => { closeModal(); toggleReplied(c); };
     E('emQP').onclick = () => { closeModal(); togglePartner(c); };
@@ -3632,6 +3634,10 @@ loadWal(); updateWalSub();
       pushMany([c]); closeModal(); renderAll(); logActivity('Hívás: ' + (c.name || c.email) + ' – ' + CALL[res]);
       toast('Mentve: ' + CALL[res] + (res === 'nincs' || res === 'vissza' ? ' – 2 nap múlva újra hívandó.' : '.'));
     };
+  }
+  function copyTxt(txt, label) {
+    const done = () => toast(label + ' kimásolva: ' + txt);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, () => fb(txt, done)); else fb(txt, done);
   }
   function fb(txt, done) { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('A másolás nem sikerült.'); } ta.remove(); }
   document.querySelectorAll('.em-seg button').forEach(b => b.onclick = () => { mode = b.dataset.m; E('emAddOpts').style.display = mode === 'add' ? '' : 'none'; document.querySelectorAll('.em-seg button').forEach(x => x.classList.toggle('on', x === b)); renderPaste(); });

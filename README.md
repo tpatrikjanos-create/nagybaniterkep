@@ -211,3 +211,7 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - A soron új „✉️ Kiküldve” gomb (ma kiküldve; újra megnyomva visszavonja) a „Válaszolt?” és „Partner?” mellett.
 - A címre koppintva megnyíló ablak tetején ugyanez a három gomb (Levél kiküldve, Válaszolt, Partner), plusz „📞 Felhívtam…”, ha van telefonszám.
 - A „Válaszolt” és a „Partner” jelölés bármikor törölhető (újra megnyomva), minden gyors gomb után „Visszavonás” a felugró sávban.
+
+## v3.18 – Email lista: telefonszám nem tárcsáz, email másolása
+- A listában a telefonszámra koppintva nem nyílik meg a telefon alkalmazás (sima szöveg; a sorra koppintás a címet nyitja meg). Tárcsázni csak a „📞 Hívás” gombbal lehet.
+- A megnyitott címnél az email cím mellett „📋 Másolás” gomb (és a telefonszám mellett is egy), amely a vágólapra másol.
