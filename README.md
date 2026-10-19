@@ -196,3 +196,8 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Címenként Étterem neve (a „Név <cím>” beillesztésből automatikusan), Kategória (pl. gyros, magyaros; javaslatok a korábbiakból) és „Partner lett” jelölés (dátummal).
 - Beillesztéskor megadható egy kategória, amit az összes új cím megkap.
 - Új „Partner lett” szűrő, kategória-szűrő és keresés kategória szerint; a soron gyors „Partner?” gomb; CSV-ben új oszlopok (etterem, kategoria, partner).
+
+## v3.15 – Email lista: telefonszám
+- Beillesztéskor soronként „Étterem neve email +36… ” formátum is jó: a név, az email és a telefonszám automatikusan szétválik (nem összetévesztve az email címben lévő számokkal).
+- Telefonszám a soron (koppintásra hívható), szerkeszthető, kereshető, CSV-ben külön oszlop.
+- Ha egy már meglévő cím újra bekerül névvel/telefonszámmal, a hiányzó adatot pótolja (ismétlésként nem ment új sort).
