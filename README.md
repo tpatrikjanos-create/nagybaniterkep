@@ -186,3 +186,8 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 - Válaszolt / nem válaszolt követés (soronként, vagy „Válaszoltak” módban tömegesen beillesztve).
 - Heti kiküldés: 7 nap után esedékes a cím; „Címek másolása” (Bcc-be) és „Kiküldtem” (visszavonható); opció: a válaszolóknak ne legyen esedékes.
 - Adatok a böngészőben (localStorage), CSV-mentéssel.
+
+## v3.13 – Email lista menüpont az appban
+- Új kezdőképernyő menüpont: 📧 Email lista (ugyanaz a működés, mint az önálló email-lista.html, de az appba építve).
+- A lista a Firebase-ben van (piacTerkep/emailList), minden bejelentkezett eszközön és felhasználónál közös; offline is használható, visszatéréskor szinkronizál.
+- Beillesztés ismétlés-szűréssel, válaszolt/nem válaszolt követés, heti (7 napos) esedékesség, Bcc-másolás, „Kiküldtem” (visszavonható, a naplóba is bekerül), CSV-mentés.
