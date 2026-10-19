@@ -300,9 +300,9 @@
   /* ===== v3.13 EMAIL LISTA ===== */
   body[data-screen=mail] #mailScreen { opacity: 1; pointer-events: auto; transform: none; }
   #mailScreen .ls-scroll { padding-bottom: 40px; }
-  .em-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+  .em-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 10px; }
   .em-stat { background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 8px 2px; text-align: center; cursor: pointer; font: inherit; }
-  .em-stat b { display: block; font-size: 22px; color: var(--g800); } .em-stat small { color: var(--muted); font-size: 11.5px; font-weight: 700; }
+  .em-stat b { display: block; font-size: 20px; color: var(--g800); } .em-stat small { color: var(--muted); font-size: 10.5px; font-weight: 700; }
   .em-stat.on { border-color: var(--g700); background: var(--g50); } .em-stat.due b { color: #8a5a00; }
   .em-card { background: #fff; border-radius: 18px; padding: 14px; margin: 12px 0; box-shadow: var(--shadow-s); }
   .em-card h4 { margin: 0 0 8px; font-size: 16px; color: var(--g800); }
@@ -324,6 +324,7 @@
   .em-ct { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--line); } .em-ct:last-child { border: none; } .em-ct .tick { width: 22px; height: 22px; accent-color: var(--g700); flex: none; }
   .em-ct .mid { flex: 1; min-width: 0; cursor: pointer; } .em-ct .mid b { display: block; overflow-wrap: anywhere; font-size: 15px; } .em-ct .mid small { color: var(--muted); font-size: 12.5px; display: block; }
   .em-pill { display: inline-block; border-radius: 99px; padding: 1px 8px; font-size: 11.5px; font-weight: 800; margin-right: 4px; background: #fde7e7; color: #c62828; } .em-pill.ok { background: #e3f6e8; color: var(--g700); } .em-pill.due { background: #fff3d6; color: #8a5a00; }
+  .em-acts { display: flex; flex-direction: column; gap: 6px; flex: none; } .em-pill.cat { background: #e3edff; color: #1a4fa3; }
   .em-rbtn { flex: none; border: 1.5px solid var(--line); background: #fff; border-radius: 12px; padding: 8px 10px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; color: var(--g800); } .em-rbtn.on { background: #e3f6e8; border-color: var(--g700); }
   .em-empty { text-align: center; color: var(--muted); padding: 18px 8px; } .em-note { color: var(--muted); font-size: 12.5px; margin: 12px 2px 0; }
   .em-lab { display: block; font-size: 12.5px; font-weight: 700; color: var(--muted); margin: 10px 0 4px; text-transform: uppercase; }
@@ -733,14 +734,16 @@
     <div class="em-card">
       <h4>Címek beillesztése</h4>
       <div class="em-seg"><button data-m="add" class="on">➕ Új címek</button><button data-m="reply">✅ Válaszoltak</button></div>
-      <textarea class="em-f" id="emPaste" placeholder="Illessz be egy vagy több email címet (vesszővel, pontosvesszővel, szóközzel vagy sorokra tagolva; „Név &lt;cim@pelda.hu&gt;” is jó)"></textarea>
+      <input class="em-f" id="emPCat" list="emCats" maxlength="40" placeholder="Kategória az új címekhez (pl. gyros, magyaros) – nem kötelező" style="margin-bottom:8px"><datalist id="emCats"></datalist>
+      <textarea class="em-f" id="emPaste" placeholder="Illessz be egy vagy több email címet (vesszővel, pontosvesszővel, szóközzel vagy sorokra tagolva; „Étterem neve &lt;cim@pelda.hu&gt;” is jó)"></textarea>
       <div class="em-sum" id="emSum"></div>
       <div class="em-pv" id="emPv" style="display:none"></div>
       <div class="em-row"><button class="em-btn ghost" id="emClr">Törlés</button><button class="em-btn" id="emGo" disabled>Mentés</button></div>
     </div>
     <div class="em-card">
       <h4 id="emLstT">Címek</h4>
-      <input type="search" class="em-f" id="emQ" placeholder="Keresés cím vagy név szerint…">
+      <input type="search" class="em-f" id="emQ" placeholder="Keresés étterem, cím vagy kategória szerint…">
+      <select class="em-f" id="emCatSel" style="margin-top:8px"></select>
       <div id="emList"></div>
     </div>
     <div class="em-card">
@@ -3401,7 +3404,7 @@ loadWal(); updateWalSub();
 /* ================= v3.13 EMAIL LISTA ================= */
 (function () {
   const E = id => document.getElementById(id), EVERY = 7, LKEY = 'piaci_emails';
-  let DBM = { contacts: {}, skip: false }, mode = 'add', flt = 'due', excluded = new Set(), synced = false;
+  let DBM = { contacts: {}, skip: false }, mode = 'add', flt = 'due', catFlt = '', excluded = new Set(), synced = false;
   const esc = s => escapeHtml(s);
   function loadM() { try { const d = JSON.parse(localStorage.getItem(LKEY) || 'null'); if (d && d.contacts) DBM = Object.assign({ skip: false }, d); } catch (e) { /* ignore */ } }
   function saveLocal() { try { localStorage.setItem(LKEY, JSON.stringify(DBM)); } catch (e) { /* ignore */ } }
@@ -3479,7 +3482,7 @@ loadWal(); updateWalSub();
     const items = parse(E('emPaste').value), ch = [];
     if (mode === 'add') {
       let d = 0;
-      items.forEach(i => { if (i.status === 'new') { const c = { email: i.email, name: i.name || '', added: today(), replied: false, repliedAt: null, lastSent: null, sent: 0, by: who() }; DBM.contacts[i.email] = c; ch.push(c); } else if (i.status !== 'bad') d++; });
+      items.forEach(i => { if (i.status === 'new') { const c = { email: i.email, name: i.name || '', cat: E('emPCat').value.trim(), partner: false, partnerAt: null, added: today(), replied: false, repliedAt: null, lastSent: null, sent: 0, by: who() }; DBM.contacts[i.email] = c; ch.push(c); } else if (i.status !== 'bad') d++; });
       pushMany(ch); toast(ch.length + ' új cím mentve' + (d ? ', ' + d + ' ismétlést kihagytam' : '') + '.'); if (ch.length) flt = 'due';
     } else {
       items.forEach(i => { const c = i.status === 'dup' && DBM.contacts[i.email]; if (c && !c.replied) { c.replied = true; c.repliedAt = today(); ch.push(c); } });
@@ -3502,8 +3505,8 @@ loadWal(); updateWalSub();
     el.textContent = n ? n + ' cím · ' + (d ? d + ' esedékes' : 'ma nincs kinek küldeni') : 'Árlista-címek, válaszok, heti kiküldés';
   };
   function renderStats() {
-    const a = allC(), due = dueList().length, rep = a.filter(c => c.replied).length;
-    const defs = [['due', 'Esedékes', due], ['wait', 'Nem válaszolt', a.length - rep], ['replied', 'Válaszolt', rep], ['all', 'Mind', a.length]];
+    const a = allC(), due = dueList().length, rep = a.filter(c => c.replied).length, par = a.filter(c => c.partner).length;
+    const defs = [['due', 'Esedékes', due], ['wait', 'Nem válaszolt', a.length - rep], ['replied', 'Válaszolt', rep], ['partner', 'Partner lett', par], ['all', 'Mind', a.length]];
     E('emStats').innerHTML = defs.map(d => '<button class="em-stat ' + (d[0] === 'due' ? 'due ' : '') + (flt === d[0] ? 'on' : '') + '" data-f="' + d[0] + '"><b>' + d[2] + '</b><small>' + d[1] + '</small></button>').join('');
   }
   function renderSend() {
@@ -3520,44 +3523,57 @@ loadWal(); updateWalSub();
   function renderList() {
     const q = E('emQ').value.trim().toLowerCase();
     let l = allC();
-    if (flt === 'due') l = dueList(); else if (flt === 'wait') l = l.filter(c => !c.replied); else if (flt === 'replied') l = l.filter(c => c.replied);
-    if (q) l = l.filter(c => c.email.includes(q) || (c.name || '').toLowerCase().includes(q));
+    if (flt === 'due') l = dueList(); else if (flt === 'wait') l = l.filter(c => !c.replied); else if (flt === 'replied') l = l.filter(c => c.replied); else if (flt === 'partner') l = l.filter(c => c.partner);
+    if (catFlt) l = l.filter(c => (c.cat || '').toLowerCase() === catFlt.toLowerCase());
+    if (q) l = l.filter(c => c.email.includes(q) || (c.name || '').toLowerCase().includes(q) || (c.cat || '').toLowerCase().includes(q));
     if (flt !== 'due') l.sort((a, b) => (b.added || '').localeCompare(a.added || '') || a.email.localeCompare(b.email));
-    E('emLstT').textContent = { due: 'Esedékes címek', wait: 'Még nem válaszoltak', replied: 'Válaszoltak', all: 'Minden cím' }[flt] + ' (' + l.length + ')';
+    E('emLstT').textContent = { due: 'Esedékes címek', wait: 'Még nem válaszoltak', replied: 'Válaszoltak', partner: 'Partnerek', all: 'Minden cím' }[flt] + ' (' + l.length + ')';
     E('emList').innerHTML = l.length ? l.map(c =>
       '<div class="em-ct" data-e="' + esc(c.email) + '">' + (flt === 'due' ? '<input type="checkbox" class="tick" ' + (excluded.has(c.email) ? '' : 'checked') + '>' : '') +
-      '<div class="mid"><b>' + esc(c.email) + '</b><small>' + (c.name ? esc(c.name) + ' · ' : '') + (c.replied ? '<span class="em-pill ok">válaszolt ' + fmtD(c.repliedAt) + '</span>' : '<span class="em-pill">nem válaszolt</span>') + '</small><small>' + sendInfo(c) + '</small></div>' +
-      '<button class="em-rbtn ' + (c.replied ? 'on' : '') + '">' + (c.replied ? '✓ Válaszolt' : 'Válaszolt?') + '</button></div>').join('')
+      '<div class="mid"><b>' + esc(c.name || c.email) + '</b>' + (c.name ? '<small>' + esc(c.email) + '</small>' : '') +
+      '<small>' + (c.cat ? '<span class="em-pill cat">' + esc(c.cat) + '</span>' : '') + (c.partner ? '<span class="em-pill ok">🤝 partner' + (c.partnerAt ? ' ' + fmtD(c.partnerAt) : '') + '</span>' : '') + (c.replied ? '<span class="em-pill ok">válaszolt ' + fmtD(c.repliedAt) + '</span>' : '<span class="em-pill">nem válaszolt</span>') + '</small><small>' + sendInfo(c) + '</small></div>' +
+      '<div class="em-acts"><button class="em-rbtn ' + (c.replied ? 'on' : '') + '">' + (c.replied ? '✓ Válaszolt' : 'Válaszolt?') + '</button><button class="em-rbtn em-pbtn ' + (c.partner ? 'on' : '') + '">' + (c.partner ? '🤝 Partner' : 'Partner?') + '</button></div></div>').join('')
       : '<div class="em-empty">' + (allC().length ? 'Nincs találat ebben a nézetben.' : 'Még nincs egyetlen cím sem. Illessz be párat fent!') + '</div>';
   }
-  function renderAll() { E('emSkip').checked = !!DBM.skip; renderStats(); renderSend(); renderList(); renderPaste(); updateMailSub(); }
+  function cats() { const m = {}; allC().forEach(c => { if (c.cat) m[c.cat.toLowerCase()] = m[c.cat.toLowerCase()] || c.cat; }); return Object.keys(m).sort().map(k => m[k]); }
+  function renderCats() {
+    const cs = cats(); E('emCats').innerHTML = cs.map(c => '<option value="' + esc(c) + '">').join('');
+    if (catFlt && !cs.some(c => c.toLowerCase() === catFlt.toLowerCase())) catFlt = '';
+    E('emCatSel').innerHTML = '<option value="">Minden kategória</option>' + cs.map(c => '<option' + (c.toLowerCase() === catFlt.toLowerCase() ? ' selected' : '') + '>' + esc(c) + '</option>').join('');
+  }
+  function renderAll() { E('emSkip').checked = !!DBM.skip; renderCats(); renderStats(); renderSend(); renderList(); renderPaste(); updateMailSub(); }
   window.renderMail = renderAll;
   function openEdit(email) {
     const c = DBM.contacts[email]; if (!c) return;
     openModal('<h3 style="margin:0 0 4px;overflow-wrap:anywhere">' + esc(c.email) + '</h3><small style="color:var(--muted)">hozzáadva: ' + fmtD(c.added) + ' · eddig ' + (c.sent || 0) + ' kiküldés</small>' +
-      '<label class="em-lab">Név / megjegyzés</label><input type="text" class="em-f" id="emEN" value="' + esc(c.name) + '">' +
+      '<label class="em-lab">Étterem neve</label><input type="text" class="em-f" id="emEN" value="' + esc(c.name) + '">' +
+      '<label class="em-lab">Kategória (pl. gyros, magyaros)</label><input type="text" class="em-f" id="emEK" list="emCats" maxlength="40" value="' + esc(c.cat || '') + '">' +
       '<label class="em-lab">Utolsó kiküldés dátuma</label><input type="date" class="em-f" id="emEL" value="' + esc(c.lastSent || '') + '">' +
       '<label class="em-chk"><input type="checkbox" id="emER"' + (c.replied ? ' checked' : '') + '> Válaszolt</label>' +
+      '<label class="em-chk"><input type="checkbox" id="emEP"' + (c.partner ? ' checked' : '') + '> 🤝 Partner lett</label>' +
       '<div class="em-row"><button class="em-btn warn" id="emED">Törlés</button><button class="em-btn ghost" id="emEC">Mégse</button><button class="em-btn" id="emES">Mentés</button></div>');
     E('emEC').onclick = closeModal;
     E('emED').onclick = () => { if (confirm('Biztosan törlöd ezt a címet?')) { delOne(email); closeModal(); renderAll(); } };
     E('emES').onclick = () => {
-      c.name = E('emEN').value.trim(); c.lastSent = E('emEL').value || null;
+      c.name = E('emEN').value.trim(); c.cat = E('emEK').value.trim(); c.lastSent = E('emEL').value || null;
+      const pp = E('emEP').checked; if (pp && !c.partner) c.partnerAt = today(); if (!pp) c.partnerAt = null; c.partner = pp;
       const r = E('emER').checked; if (r && !c.replied) c.repliedAt = today(); if (!r) c.repliedAt = null; c.replied = r;
       pushMany([c]); closeModal(); renderAll();
     };
   }
   function fb(txt, done) { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('A másolás nem sikerült.'); } ta.remove(); }
-  document.querySelectorAll('.em-seg button').forEach(b => b.onclick = () => { mode = b.dataset.m; document.querySelectorAll('.em-seg button').forEach(x => x.classList.toggle('on', x === b)); renderPaste(); });
+  document.querySelectorAll('.em-seg button').forEach(b => b.onclick = () => { mode = b.dataset.m; E('emPCat').style.display = mode === 'add' ? '' : 'none'; document.querySelectorAll('.em-seg button').forEach(x => x.classList.toggle('on', x === b)); renderPaste(); });
   E('emPaste').addEventListener('input', renderPaste);
   E('emClr').onclick = () => { E('emPaste').value = ''; renderPaste(); };
   E('emGo').onclick = commitPaste;
   E('emQ').addEventListener('input', renderList);
+  E('emCatSel').addEventListener('change', () => { catFlt = E('emCatSel').value; renderList(); });
   E('emStats').addEventListener('click', e => { const b = e.target.closest('.em-stat'); if (b) { flt = b.dataset.f; renderStats(); renderList(); } });
   E('emSkip').onchange = () => { DBM.skip = E('emSkip').checked; saveLocal(); if (firebaseReady && db) { try { db.ref('emailSettings/skipReplied').set(DBM.skip); } catch (e) { /* ignore */ } } renderAll(); };
   E('emList').addEventListener('click', e => {
     const row = e.target.closest('.em-ct'); if (!row) return; const em = row.dataset.e, c = DBM.contacts[em]; if (!c) return;
     if (e.target.classList.contains('tick')) { if (e.target.checked) excluded.delete(em); else excluded.add(em); renderSend(); return; }
+    if (e.target.classList.contains('em-pbtn')) { c.partner = !c.partner; c.partnerAt = c.partner ? today() : null; pushMany([c]); renderAll(); return; }
     if (e.target.classList.contains('em-rbtn')) { c.replied = !c.replied; c.repliedAt = c.replied ? today() : null; pushMany([c]); renderAll(); return; }
     openEdit(em);
   });
@@ -3576,7 +3592,7 @@ loadWal(); updateWalSub();
     }
   });
   E('emCsv').onclick = () => {
-    const rows = [['email', 'nev', 'hozzaadva', 'valaszolt', 'valasz_datuma', 'utolso_kuldes', 'kuldesek_szama']].concat(allC().map(c => [c.email, c.name || '', c.added || '', c.replied ? 'igen' : 'nem', c.repliedAt || '', c.lastSent || '', c.sent || 0]));
+    const rows = [['email', 'etterem', 'kategoria', 'partner', 'partner_datuma', 'hozzaadva', 'valaszolt', 'valasz_datuma', 'utolso_kuldes', 'kuldesek_szama']].concat(allC().map(c => [c.email, c.name || '', c.cat || '', c.partner ? 'igen' : 'nem', c.partnerAt || '', c.added || '', c.replied ? 'igen' : 'nem', c.repliedAt || '', c.lastSent || '', c.sent || 0]));
     const csv = '﻿' + rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(';')).join('\r\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'email-lista-' + today() + '.csv'; document.body.appendChild(a); a.click(); a.remove();
   };
