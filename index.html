@@ -3683,6 +3683,84 @@ loadWal(); updateWalSub();
   E('emBack').addEventListener('click', () => goBack());
   loadM(); updateMailSub();
 })();
+/* v3.20 – rejtett adatnullázás (költségkönyvek) */
+(function () {
+  var logo = document.getElementById('homeLogo'); if (!logo) return;
+  var taps = [];
+  logo.addEventListener('click', function () {
+    var n = Date.now(); taps.push(n); taps = taps.filter(function (t) { return n - t < 4000; });
+    if (taps.length >= 7) { taps = []; openReset(); }
+  });
+  var PROTECT = ['piacTerkep'];
+  function esc(s) { return escapeHtml(String(s)); }
+  function dbUrl() { return firebaseConfig.databaseURL.replace(/\/$/, ''); }
+  function tok() { var u = firebase.auth().currentUser; if (!u) return Promise.reject(new Error('Nem vagy bejelentkezve')); return u.getIdToken(); }
+  function rest(method, path, t) {
+    return fetch(dbUrl() + '/' + path + '.json?auth=' + encodeURIComponent(t), { method: method }).then(function (r) {
+      return r.text().then(function (x) { if (!r.ok) throw new Error(r.status + ' ' + x.slice(0, 120)); return x ? JSON.parse(x) : null; });
+    });
+  }
+  function openReset() {
+    openModal('<h3 style="margin:0 0 6px">🧹 Adatnullázás</h3>' +
+      '<div style="font-size:13px;opacity:.8;margin-bottom:10px">Költségkönyv adatok végleges törlése (minden profil). A piaci árfigyelő (<b>piacTerkep</b>) védett, azt nem érinti.</div>' +
+      '<button class="btn" id="rsFind" style="width:100%;margin-bottom:8px">🔍 Csomópontok keresése</button>' +
+      '<div id="rsList"></div>' +
+      '<div style="font-size:12px;opacity:.7;margin:8px 0 4px">Ha a keresés nem engedett, írd be kézzel a csomópontok nevét, vesszővel elválasztva:</div>' +
+      '<input id="rsManual" placeholder="pl. menza, nagybani" style="width:100%;padding:10px;border-radius:10px;border:1px solid #8884;margin-bottom:8px">' +
+      '<button class="btn" id="rsBackup" style="width:100%;margin-bottom:8px">💾 Mentés letöltése (JSON) – ajánlott</button>' +
+      '<div style="font-size:12px;margin:6px 0 4px">Megerősítéshez írd be: <b>NULLÁZÁS</b></div>' +
+      '<input id="rsConfirm" autocomplete="off" style="width:100%;padding:10px;border-radius:10px;border:1px solid #8884;margin-bottom:8px">' +
+      '<div id="rsMsg" style="font-size:12px;min-height:16px;margin-bottom:8px"></div>' +
+      '<div style="display:flex;gap:8px"><button class="btn" id="rsCancel" style="flex:1">Mégse</button>' +
+      '<button class="btn" id="rsGo" style="flex:1;background:#c62828;color:#fff">Törlés</button></div>');
+    var E = function (i) { return document.getElementById(i); };
+    var msg = function (m) { E('rsMsg').textContent = m; };
+    E('rsCancel').onclick = closeModal;
+    E('rsFind').onclick = function () {
+      msg('Keresés…');
+      tok().then(function (t) {
+        return fetch(dbUrl() + '/.json?shallow=true&auth=' + encodeURIComponent(t)).then(function (r) {
+          if (!r.ok) throw new Error(r.status);
+          return r.json();
+        });
+      }).then(function (o) {
+        var ks = Object.keys(o || {}).filter(function (k) { return PROTECT.indexOf(k) < 0; });
+        if (!ks.length) { E('rsList').innerHTML = '<i>Nincs más csomópont.</i>'; msg(''); return; }
+        E('rsList').innerHTML = ks.map(function (k) {
+          return '<label style="display:block;padding:4px 0"><input type="checkbox" class="rsK" value="' + esc(k) + '" checked> ' + esc(k) + '</label>';
+        }).join('');
+        msg(ks.length + ' csomópont található – pipáld ki, amit törölni kell.');
+      }).catch(function (e) { msg('A keresés nem engedett (' + e.message + '). Írd be kézzel a neveket.'); });
+    };
+    function chosen() {
+      var a = Array.prototype.slice.call(document.querySelectorAll('.rsK:checked')).map(function (x) { return x.value; });
+      E('rsManual').value.split(',').forEach(function (s) { s = s.trim(); if (s && a.indexOf(s) < 0) a.push(s); });
+      return a.filter(function (k) { return PROTECT.indexOf(k) < 0 && /^[^.#$\[\]\/]+$/.test(k); });
+    }
+    E('rsBackup').onclick = function () {
+      var ks = chosen(); if (!ks.length) { msg('Nincs kijelölt csomópont.'); return; }
+      msg('Mentés készül…');
+      tok().then(function (t) { return Promise.all(ks.map(function (k) { return rest('GET', k, t).then(function (v) { return [k, v]; }); })); })
+        .then(function (rs) {
+          var o = {}; rs.forEach(function (r) { o[r[0]] = r[1]; });
+          var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(o, null, 1)], { type: 'application/json' }));
+          a.download = 'koltsegkonyv-mentes-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); msg('Mentés letöltve.');
+        }).catch(function (e) { msg('Mentés hiba: ' + e.message); });
+    };
+    E('rsGo').onclick = function () {
+      var ks = chosen();
+      if (!ks.length) { msg('Nincs kijelölt csomópont.'); return; }
+      if (E('rsConfirm').value.trim().toUpperCase() !== 'NULLÁZÁS') { msg('Írd be pontosan: NULLÁZÁS'); return; }
+      E('rsGo').disabled = true; msg('Törlés…');
+      tok().then(function (t) { return Promise.all(ks.map(function (k) { return rest('DELETE', k, t); })); })
+        .then(function () {
+          try { logActivity && logActivity('Adatnullázás: ' + ks.join(', ')); } catch (e) { }
+          msg('Kész. Törölve: ' + ks.join(', ') + '. A költségkönyv appban frissítsd az oldalt.');
+          E('rsGo').style.display = 'none';
+        }).catch(function (e) { E('rsGo').disabled = false; msg('Hiba: ' + e.message + ' (a szabályok tiltják?)'); });
+    };
+  }
+})();
 </script>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>

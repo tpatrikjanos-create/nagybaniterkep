@@ -218,3 +218,8 @@ Egyfájlos HTML, build eszköz nélkül · Google Maps JS API · Firebase Realti
 
 ## v3.19 – Email lista: válaszoló és partner nem kap emailt
 - Aki válaszolt, partner lett, vagy nem érdekli, az mindig kikerül az esedékes emailek (és a „Címek másolása” / „Kiküldtem”) köréből; a korábbi kapcsoló megszűnt, ez mindig így működik. Ha visszavonod a jelölést, újra esedékes lehet.
+
+## v3.20 – Rejtett adatnullázás (költségkönyvek)
+- Rejtett menü: a főképernyő logójára 4 mp-en belül 7-et koppintva nyílik az „Adatnullázás” ablak.
+- „Csomópontok keresése” kilistázza az adatbázis legfelső szintű csomópontjait (a `piacTerkep` védett, nem törölhető); ha a szabályok nem engedik, a nevek kézzel is megadhatók.
+- Ajánlott: „Mentés letöltése (JSON)”, majd a törléshez be kell írni: NULLÁZÁS. A törlés a saját bejelentkezéssel megy, minden profil adatát érinti.
