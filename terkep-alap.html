@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Piaci térkép – alap</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; overflow: hidden; background: #1b5e20; }
+  #map { position: absolute; inset: 0; z-index: 0; }
+  .leaflet-top.leaflet-right { top: 12px; }
+  .stand-ico { background: none; border: none; }
+
+  #status { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 900;
+    background: rgba(16,34,26,.9); color: #fff; padding: 8px 14px; border-radius: 12px; font-size: 14px;
+    display: none; max-width: 92%; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,.3); }
+
+  #gpsBtn { position: absolute; bottom: 20px; right: 16px; z-index: 900; border: none; border-radius: 50%;
+    width: 56px; height: 56px; font-size: 22px; background: #1976d2; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.4); cursor: pointer; }
+
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 990; display: none; }
+  #overlay.open { display: block; }
+  #panel { position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000; background: #fff; border-radius: 22px 22px 0 0;
+    box-shadow: 0 -8px 30px rgba(0,0,0,.3); max-height: 78vh; overflow-y: auto; padding: 22px 16px 20px;
+    transform: translateY(100%); transition: transform .3s ease; }
+  #panel.open { transform: none; }
+  #panel h3 { margin: 0 0 10px; color: #1b5e20; padding-right: 30px; }
+  #panel input, #panel textarea { width: 100%; padding: 10px; border-radius: 10px; border: 1.5px solid #ccc; font-size: 16px; font-family: inherit; margin-bottom: 8px; }
+  #panel textarea { min-height: 70px; }
+  #panel .btn { width: 100%; border: none; border-radius: 10px; padding: 11px; font-weight: bold; font-size: 15px; margin-bottom: 8px; cursor: pointer; }
+  #panel .warn { background: #fff3cd; border: 1px solid #ffe08a; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; font-size: 13px; color: #8a5a00; }
+  #closeBtn { position: absolute; top: 10px; right: 12px; background: none; border: none; font-size: 24px; color: #999; cursor: pointer; }
+
+  #login { position: fixed; inset: 0; z-index: 2000; background: #0b3d20; color: #fff; display: none;
+    flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+  #login.show { display: flex; }
+  #login input { width: 100%; max-width: 340px; padding: 12px; border-radius: 10px; border: none; font-size: 16px; margin-bottom: 10px; }
+  #login button { width: 100%; max-width: 340px; padding: 12px; border: none; border-radius: 10px; background: #ffb300; font-weight: bold; font-size: 16px; }
+  #lgErr { color: #ffcdd2; min-height: 20px; font-size: 14px; margin-top: 8px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="status"></div>
+<button id="gpsBtn" title="Saját helyzet">📍</button>
+
+<div id="overlay"></div>
+<div id="panel"><button id="closeBtn">×</button><div id="panelContent"></div></div>
+
+<div id="login">
+  <h2 style="margin:0 0 6px">Piaci térkép</h2>
+  <p style="margin:0 0 18px;opacity:.8;font-size:14px">Jelentkezz be a folytatáshoz</p>
+  <input id="lgEmail" type="text" placeholder="Felhasználónév" autocomplete="username" autocapitalize="none">
+  <input id="lgPass" type="password" placeholder="Jelszó" autocomplete="current-password">
+  <button id="lgGo">Belépés</button>
+  <div id="lgErr"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+/* ====== BEÁLLÍTÁSOK ======
+   Feltételezés: ugyanaz a Firebase projekt és ugyanaz a piacTerkep/ ág, mint a piaci árfigyelőben.
+   A szabályoknak auth != null kell legyen a piacTerkep ágon. */
+const firebaseConfig = {
+  apiKey: "AIzaSyD78fzP_pgMlNOkca23_KjkZ3lEfHMzokU",
+  authDomain: "nagybani-gastro-koltsegkonyv.firebaseapp.com",
+  databaseURL: "https://nagybani-gastro-koltsegkonyv-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "nagybani-gastro-koltsegkonyv",
+  storageBucket: "nagybani-gastro-koltsegkonyv.firebasestorage.app",
+  messagingSenderId: "713156211231",
+  appId: "1:713156211231:web:102100b0fe192575e2db2a"
+};
+const FB_ROOT = 'piacTerkep';
+
+const MARKET_CENTER = { lat: 47.414838, lng: 19.168016 }; // Budapesti Nagybani Piac, Nagykőrösi út
+const MARKET_ZOOM = 19, MARKET_MIN_ZOOM = 17, MARKET_MAX_ZOOM = 21;
+const MARKET_RADIUS_DEG = 0.006;
+const LONG_PRESS_MS = 550;
+const STAND_MERGE_M = 15;           // ennél közelebbi meglévő stand kiválasztódik, nem jön létre újra
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+
+/* ====== ÁLLAPOT ====== */
+let map = null, db = null, firebaseReady = false, fbListening = false, fbStarted = false;
+let vendors = {}, markers = {}, selectedId = null;
+let myMarker = null, myCircle = null, myLL = null, gpsOut = false;
+
+const $ = (id) => document.getElementById(id);
+function who() { return window.CURRENT_USER || 'helyi'; }
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function showStatus(msg, ms = 2500) {
+  const el = $('status'); el.textContent = msg; el.style.display = 'block';
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => { el.style.display = 'none'; }, ms);
+}
+function distanceMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000, dLat = (lat2 - lat1) * Math.PI / 180, dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+function findNearbyVendor(lat, lng, meters) {
+  for (const [id, v] of Object.entries(vendors)) if (distanceMeters(lat, lng, v.lat, v.lng) <= meters) return id;
+  return null;
+}
+
+/* ====== TÉRKÉP ====== */
+function initMap() {
+  map = L.map('map', {
+    center: [MARKET_CENTER.lat, MARKET_CENTER.lng], zoom: MARKET_ZOOM,
+    minZoom: MARKET_MIN_ZOOM, maxZoom: MARKET_MAX_ZOOM, zoomControl: false,
+    maxBounds: [[MARKET_CENTER.lat - MARKET_RADIUS_DEG, MARKET_CENTER.lng - MARKET_RADIUS_DEG],
+                [MARKET_CENTER.lat + MARKET_RADIUS_DEG, MARKET_CENTER.lng + MARKET_RADIUS_DEG]],
+    maxBoundsViscosity: 1.0,
+  });
+  const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxNativeZoom: 19, maxZoom: MARKET_MAX_ZOOM, attribution: 'Kép: Esri, Maxar, Earthstar Geographics' }).addTo(map);
+  const street = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxNativeZoom: 19, maxZoom: MARKET_MAX_ZOOM, attribution: '© OpenStreetMap közreműködők' });
+  L.control.layers({ 'Műhold': sat, 'Térkép': street }, null, { position: 'topright' }).addTo(map);
+
+  setupLongPress();
+  setupGps();
+  loadLocalVendors();
+  renderMarkers();
+  cleanupTemporaryVendors();
+  setInterval(cleanupTemporaryVendors, CLEANUP_INTERVAL_MS);
+}
+
+/* ====== HOSSZÚ NYOMÁS: ÚJ STAND ====== */
+function setupLongPress() {
+  const el = map.getContainer();
+  let timer = null, sx = 0, sy = 0;
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  el.addEventListener('contextmenu', e => e.preventDefault());
+  el.addEventListener('pointerdown', e => {
+    if (e.isPrimary === false) { cancel(); return; }
+    if (e.target.closest('.leaflet-control, .leaflet-marker-icon, .leaflet-interactive, .leaflet-popup')) return;
+    sx = e.clientX; sy = e.clientY;
+    const pt = map.mouseEventToLatLng(e);
+    cancel();
+    timer = setTimeout(() => { timer = null; handleNewPosition(pt.lat, pt.lng); }, LONG_PRESS_MS);
+  });
+  el.addEventListener('pointermove', e => { if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) cancel(); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => el.addEventListener(n, cancel));
+  map.on('zoomstart movestart', cancel);
+}
+
+function handleNewPosition(lat, lng) {
+  const nearId = findNearbyVendor(lat, lng, STAND_MERGE_M);
+  if (nearId) {
+    selectedId = nearId; renderMarkers();
+    showStatus('Kiválasztva: ' + (vendors[nearId].name || 'meglévő stand'));
+    return;
+  }
+  const name = prompt('Új stand neve / kereskedő neve:', '');
+  if (name === null) return;
+  createVendor(name || 'Névtelen stand', lat, lng);
+}
+
+/* ====== GPS – KÉK PONT ====== */
+function setupGps() {
+  $('gpsBtn').addEventListener('click', () => {
+    if (myLL && !gpsOut) map.setView([myLL.lat, myLL.lng], MARKET_ZOOM);
+    else showStatus(myLL ? 'A piacon kívül vagy, a kék pont nem látszik.' : 'Még nincs helymeghatározás.', 4000);
+  });
+  if (!navigator.geolocation) { showStatus('A böngésző nem támogatja a helymeghatározást.', 5000); return; }
+  if (window.isSecureContext === false) { showStatus('A GPS csak https címen működik.', 5000); return; }
+  navigator.geolocation.watchPosition(
+    pos => updateMyLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
+    err => {
+      if (err.code === 1) showStatus('A helymeghatározás le van tiltva. Engedélyezd a böngészőben (Hely).', 7000);
+      else showStatus('Nincs GPS-jel: ' + (err.message || 'időtúllépés'), 4000);
+    },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+  );
+}
+
+function updateMyLocation(lat, lng, accuracy) {
+  myLL = { lat, lng };
+  gpsOut = Math.abs(lat - MARKET_CENTER.lat) > MARKET_RADIUS_DEG || Math.abs(lng - MARKET_CENTER.lng) > MARKET_RADIUS_DEG;
+  if (gpsOut) {
+    if (myMarker) { map.removeLayer(myMarker); myMarker = null; }
+    if (myCircle) { map.removeLayer(myCircle); myCircle = null; }
+    return;
+  }
+  if (!myMarker) {
+    myCircle = L.circle([lat, lng], { radius: accuracy || 10, color: '#1a73e8', weight: 1, opacity: .4, fillColor: '#1a73e8', fillOpacity: .15, interactive: false }).addTo(map);
+    myMarker = L.circleMarker([lat, lng], { radius: 9, color: '#fff', weight: 3, fillColor: '#1a73e8', fillOpacity: 1 }).addTo(map);
+    myMarker.bindTooltip('Itt állsz – kattints ide új stand felvételéhez');
+    myMarker.on('click', () => handleNewPosition(myLL.lat, myLL.lng));
+  } else {
+    myMarker.setLatLng([lat, lng]);
+    myCircle.setLatLng([lat, lng]).setRadius(accuracy || 10);
+  }
+}
+
+/* ====== ADATOK (Firebase, vagy helyi tároló bejelentkezés nélkül) ====== */
+function loadLocalVendors() {
+  try { vendors = JSON.parse(localStorage.getItem('piaci_vendors') || '{}') || {}; } catch (e) { vendors = {}; }
+}
+function saveLocalVendors() {
+  try { localStorage.setItem('piaci_vendors', JSON.stringify(vendors)); } catch (e) { /* ignore */ }
+}
+function writeVendor(id, patch, remove) {
+  if (firebaseReady && db) {
+    if (remove) db.ref('vendors/' + id).remove();
+    else if (patch) db.ref('vendors/' + id).update(patch);
+  } else {
+    saveLocalVendors(); renderMarkers();
+  }
+}
+
+function createVendor(name, lat, lng) {
+  const id = 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  // alapból ideiglenes: ha nem jelölöd fixnek, éjfélkor törlődik
+  const v = { name, lat, lng, permanent: false, createdDate: todayStr(), by: who() };
+  vendors[id] = v; selectedId = id;
+  if (firebaseReady && db) db.ref('vendors/' + id).set(v);
+  else { saveLocalVendors(); renderMarkers(); }
+  showStatus('Új stand: ' + name + ' (ideiglenes, éjfélkor törlődik, ha nem jelölöd fixnek)', 4000);
+  return id;
+}
+
+function cleanupTemporaryVendors() {
+  const today = todayStr();
+  let changed = false;
+  Object.entries(vendors).forEach(([id, v]) => {
+    if (v.permanent === false && v.createdDate && v.createdDate !== today) {
+      if (firebaseReady && db) db.ref('vendors/' + id).remove();
+      else { delete vendors[id]; changed = true; }
+    }
+  });
+  if (!firebaseReady && changed) { saveLocalVendors(); renderMarkers(); }
+}
+
+/* ====== STAND-JELÖLŐK ====== */
+function vendorIcon(v, color) {
+  const prefix = (v.favorite ? '⭐ ' : '') + (v.permanent === false ? '⏳ ' : '');
+  const label = escapeHtml((prefix + (v.name || 'Stand')).slice(0, 26));
+  return L.divIcon({
+    className: 'stand-ico', iconSize: null,
+    html: '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;transform:translate(-8px,-8px)">' +
+      '<span style="width:16px;height:16px;border-radius:50%;background:' + color + ';border:2.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.5)"></span>' +
+      '<span style="font:bold 12px Arial,sans-serif;color:#111;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff">' + label + '</span></div>'
+  });
+}
+
+function renderMarkers() {
+  if (!map) return;
+  Object.values(markers).forEach(m => map.removeLayer(m));
+  markers = {};
+  Object.entries(vendors).forEach(([id, v]) => {
+    if (typeof v.lat !== 'number' || typeof v.lng !== 'number') return;
+    const color = id === selectedId ? '#ffb300' : '#1b5e20';
+    const m = L.marker([v.lat, v.lng], { icon: vendorIcon(v, color), title: v.name || 'Stand',
+      zIndexOffset: id === selectedId ? 500 : (v.favorite ? 200 : 100) }).addTo(map);
+    m.on('click', () => openVendorPanel(id));
+    markers[id] = m;
+  });
+}
+
+/* ====== STAND-PANEL ====== */
+function openPanel() { $('panel').classList.add('open'); $('overlay').classList.add('open'); }
+function closePanel() { $('panel').classList.remove('open'); $('overlay').classList.remove('open'); }
+$('closeBtn').addEventListener('click', closePanel);
+$('overlay').addEventListener('click', closePanel);
+
+function openVendorPanel(id) {
+  selectedId = id; renderMarkers();
+  const v = vendors[id]; if (!v) return;
+  const isFav = !!v.favorite, isPerm = v.permanent !== false;
+  $('panelContent').innerHTML =
+    '<h3>' + (isFav ? '⭐ ' : '') + (isPerm ? '' : '⏳ ') + escapeHtml(v.name || 'Stand') + '</h3>' +
+    (isPerm ? '' : '<div class="warn">⏳ Ideiglenes stand – ha ma nem jelölöd fixnek, éjfélkor törlődik.</div>') +
+    '<input id="renameInput" value="' + escapeHtml(v.name || '') + '" placeholder="Stand neve">' +
+    '<button class="btn" id="renameBtn" style="background:#1b5e20;color:#fff">Átnevez</button>' +
+    '<button class="btn" id="favBtn" style="background:' + (isFav ? '#ffb300' : '#eee') + ';color:' + (isFav ? '#222' : '#555') + '">' +
+      (isFav ? '⭐ Kedvenc – kattints a törléshez' : '☆ Megjelölés kedvencként') + '</button>' +
+    '<button class="btn" id="permBtn" style="background:' + (isPerm ? '#1976d2' : '#ffb300') + ';color:' + (isPerm ? '#fff' : '#222') + '">' +
+      (isPerm ? '📌 Fix hely – kattints, hogy ideiglenes legyen' : '⏳ Ideiglenes – kattints a fixáláshoz') + '</button>' +
+    '<textarea id="noteInput" placeholder="Jegyzet (pl. telefonszám, mikor van itt…)">' + escapeHtml(v.note || '') + '</textarea>' +
+    '<button class="btn" id="noteBtn" style="background:#1976d2;color:#fff">Jegyzet mentése</button>';
+  openPanel();
+
+  $('renameBtn').onclick = () => {
+    const n = $('renameInput').value.trim(); if (!n) return;
+    v.name = n; writeVendor(id, { name: n }); openVendorPanel(id);
+  };
+  $('favBtn').onclick = () => {
+    v.favorite = !v.favorite; writeVendor(id, { favorite: v.favorite }); openVendorPanel(id);
+  };
+  $('permBtn').onclick = () => {
+    v.permanent = !(v.permanent !== false); writeVendor(id, { permanent: v.permanent }); openVendorPanel(id);
+  };
+  $('noteBtn').onclick = () => {
+    v.note = $('noteInput').value; writeVendor(id, { note: v.note }); showStatus('Jegyzet mentve.');
+  };
+}
+
+/* ====== BEJELENTKEZÉS + FIREBASE ====== */
+function authErr(e) {
+  const m = { 'auth/wrong-password': 'Hibás jelszó.', 'auth/invalid-credential': 'Hibás felhasználónév vagy jelszó.',
+    'auth/user-not-found': 'Nincs ilyen felhasználó.', 'auth/too-many-requests': 'Túl sok próbálkozás, várj egy kicsit.',
+    'auth/network-request-failed': 'Nincs hálózat.' };
+  return m[e && e.code] || ('Bejelentkezési hiba: ' + (e && (e.code || e.message) || e));
+}
+function setupLogin() {
+  const go = () => {
+    let e = $('lgEmail').value.trim().toLowerCase(); const p = $('lgPass').value;
+    if (!e || !p) { $('lgErr').textContent = 'Add meg a felhasználónevet és a jelszót.'; return; }
+    if (e.indexOf('@') < 0) e += '@kiadas.local';
+    $('lgErr').textContent = ''; $('lgGo').disabled = true;
+    firebase.auth().signInWithEmailAndPassword(e, p)
+      .catch(x => { $('lgErr').textContent = authErr(x); })
+      .then(() => { $('lgGo').disabled = false; });
+  };
+  $('lgGo').onclick = go;
+  $('lgPass').addEventListener('keydown', ev => { if (ev.key === 'Enter') go(); });
+}
+function showLogin() { $('login').classList.add('show'); }
+function hideLogin() { $('login').classList.remove('show'); }
+
+function initFirebase() {
+  if (fbStarted) return; fbStarted = true;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    const fbDb = firebase.database();
+    db = { ref: (p) => fbDb.ref(FB_ROOT + '/' + p) };
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) onSignedIn(user);
+      else { firebaseReady = false; showLogin(); }
+    });
+  } catch (e) {
+    console.error('Firebase init hiba:', e);
+    showStatus('Firebase hiba – helyi módban', 4000);
+  }
+}
+
+function onSignedIn(user) {
+  window.CURRENT_USER = user.email || user.displayName || 'felhasználó';
+  hideLogin();
+  firebaseReady = true;
+  if (!fbListening) {
+    fbListening = true;
+    db.ref('vendors').on('value', snap => {
+      vendors = snap.val() || {};
+      renderMarkers();
+    }, err => {
+      console.error(err);
+      showStatus('Nincs jogosultság az adatbázishoz (Rules).', 9000);
+    });
+    showStatus('✓ Szinkron bekapcsolva', 2500);
+  }
+}
+
+window.addEventListener('load', () => {
+  initMap();
+  setupLogin();
+  initFirebase();
+});
+</script>
+</body>
+</html>
